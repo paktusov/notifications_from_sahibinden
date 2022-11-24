@@ -31,3 +31,14 @@ services:
       - 27017:27017
     volumes:
       - ./db:/data/db
+
+  telegram:
+    build:
+      context: .
+      dockerfile: ./deploy/notifications_from_sahibinden/Dockerfile
+    restart: always
+    environment:
+      - TZ=Europe/Istanbul
+    volumes:
+      - ./:/opt/app
+    command: ['poetry', 'run', 'python', '-m', 'bot']

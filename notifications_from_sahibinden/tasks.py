@@ -1,6 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
-from notifications_from_sahibinden.config import celery_config
+from config import celery_config
 from notifications_from_sahibinden.data import processing_data
 
 

@@ -8,7 +8,8 @@ load_dotenv()
 
 class TelegramSettings(BaseSettings):
     token_antalya: str
-    id_antalya: str
+    id_antalya_channel: str
+    id_antalya_chat: str
 
     class Config:
         evn_file = ".env"

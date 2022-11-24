@@ -5,8 +5,8 @@ from time import sleep
 
 from selenium import webdriver
 
-from notifications_from_sahibinden.utils.mongo import get_db
-from notifications_from_sahibinden.utils.telegram import send_ad_to_telegram
+from notifications_from_sahibinden.mongo import get_db
+from bot.__main__ import send_ad_to_telegram, send_comment_for_ad_to_telegram
 
 
 def save_data(data):
@@ -45,18 +45,23 @@ def get_data(
         )
 
     options = webdriver.ChromeOptions()
+    options.add_argument("start-maximized")
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
+    options.add_argument("--enable-javascript")
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
 
     driver = webdriver.Remote(
         command_executor='http://selenium:4444/wd/hub',
         options=options
     )
+
     driver.get('https://www.sahibinden.com')
     sleep(4)
-    print(link)
     driver.get(link)
     html = driver.page_source
     data = json.loads(re.sub(r'(\<([^>]+)>)', '', html))
@@ -69,29 +74,41 @@ def get_data(
 def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
+    new_ads = []
+    new_price_ads = []
     for ad in get_data():
         ad['_id'] = ad.pop('id')
         if int(ad['_id']) < 1000000000 and not ad['thumbnailUrl']:
             continue
         exist = flats.find_one({'_id': ad['_id']})
         if not exist:
-            ad['history_price'] = [(ad['price'], now_time)]
+            ad['history_price'] = [(int(ad['price']), now_time)]
             ad["last_seen"] = now_time
             ad["last_update"] = now_time
             ad["removed"] = False
             flats.insert_one(ad)
+            new_ads.append(ad)
         else:
-            if exist['history_price'][-1][0] != ad['price']:
-                exist["history_price"].append((ad['price'], now_time))
-                exist["last_update"] = now_time
             exist["last_seen"] = now_time
             exist["removed"] = False
+            if exist['history_price'][-1][0] != int(ad['price']):
+                exist["history_price"].append((int(ad['price']), now_time))
+                exist["last_update"] = now_time
+                new_price_ads.append(exist)
             flats.find_one_and_replace({"_id": ad['_id']}, exist)
 
     removed = flats.update_many({'last_seen': {'$lt': now_time}},
                                 {'$set': {'removed': True}})
-    updated = list(flats.find({'last_update': {'$gte': now_time}}))
-    if updated:
-        for i, ad in enumerate(updated):
-            send_ad_to_telegram(ad)
-            sleep(5)
+    # updated = list(flats.find({'last_update': {'$gte': now_time}}))
+    # if updated:
+    #     for i, ad in enumerate(updated):
+    #         if i == 0:
+    #             send_ad_to_telegram(ad)
+    #             sleep(5)
+    for new_ad in new_ads:
+        send_ad_to_telegram(new_ad)
+        sleep(5)
+
+    for new_price_ad in new_price_ads:
+        send_comment_for_ad_to_telegram(new_price_ad)
+        sleep(5)

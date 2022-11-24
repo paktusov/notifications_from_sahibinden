@@ -1,5 +1,5 @@
 import pymongo
-from notifications_from_sahibinden.config import mongo_config
+from config import mongo_config
 
 
 def get_db():
