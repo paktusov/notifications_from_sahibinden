@@ -75,13 +75,13 @@ def get_data(
 def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
-    new_ads = []
-    updated_ads = []
+
     for ad in get_data():
+        if int(ad['id']) < 1000000000 and not ad['thumbnailUrl']:
+            continue
+
         ad['_id'] = ad.pop('id')
         ad['short_url'] = f'https://www.sahibinden.com/{ad["_id"]}'
-        if int(ad['_id']) < 1000000000 and not ad['thumbnailUrl']:
-            continue
         exist = flats.find_one({'_id': ad['_id']})
         if not exist:
             ad['history_price'] = [(int(ad['price']), now_time)]
@@ -89,24 +89,23 @@ def processing_data():
             ad["last_update"] = now_time
             ad["removed"] = False
             flats.insert_one(ad)
-            new_ads.append(ad)
+            send_ad_to_telegram(ad)
+            sleep(5)
         else:
             exist["last_seen"] = now_time
             exist["removed"] = False
             if exist['history_price'][-1][0] != int(ad['price']):
                 exist["history_price"].append((int(ad['price']), now_time))
                 exist["last_update"] = now_time
-                updated_ads.append(exist)
+                send_comment_for_ad_to_telegram(ad)
+                sleep(5)
+                edit_ad_in_telegram(ad, 'update')
+                sleep(5)
             flats.find_one_and_replace({"_id": ad['_id']}, exist)
 
-    removed_ads = flats.update_many({'last_seen': {'$lt': now_time}},
-                                {'$set': {'removed': True}})
-
-    for new_ad in new_ads:
-        send_ad_to_telegram(new_ad)
-        sleep(5)
-
-    for updated_ad in updated_ads:
-        send_comment_for_ad_to_telegram(updated_ad)
-        edit_ad_in_telegram(updated_ad, 'update')
+    removed_ads = flats.find({"last_seen": {"$lt": now_time}})
+    for removed_ad in removed_ads:
+        removed_ad["removed"] = True
+        flats.find_one_and_replace({"_id": removed_ad['_id']}, removed_ad)
+        edit_ad_in_telegram(removed_ad, 'remove')
         sleep(5)

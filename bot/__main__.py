@@ -25,7 +25,7 @@ def make_caption(ad, status='new'):
     if status == 'update':
         caption = '<a href="{}">{}</a>\n<s>{} TL</s> {} TL / {}'
         return caption.format(link, ad['title'], first_price, last_price, date)
-    elif status == 'delete':
+    elif status == 'remove':
         caption = '<a href="#">{}</a>\n<b>{}</b> / {}'
         return caption.format(ad['title'], 'Not relevant', date)
 
