@@ -7,7 +7,8 @@ from typing import Optional
 load_dotenv()
 
 class TelegramSettings(BaseSettings):
-    token_antalya: str
+    token_antalya_bot: str
+    antalya_bot_id: str
     id_antalya_channel: str
     id_antalya_chat: str
 

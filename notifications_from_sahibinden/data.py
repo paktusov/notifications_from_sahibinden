@@ -1,12 +1,13 @@
 from datetime import datetime
 import json
+import logging
 import re
 from time import sleep
 
 from selenium import webdriver
 
 from notifications_from_sahibinden.mongo import get_db
-from bot.__main__ import send_ad_to_telegram, send_comment_for_ad_to_telegram
+from bot.__main__ import send_ad_to_telegram, send_comment_for_ad_to_telegram, edit_ad_in_telegram
 
 
 def save_data(data):
@@ -75,9 +76,10 @@ def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
     new_ads = []
-    new_price_ads = []
+    updated_ads = []
     for ad in get_data():
         ad['_id'] = ad.pop('id')
+        ad['short_url'] = f'https://www.sahibinden.com/{ad["_id"]}'
         if int(ad['_id']) < 1000000000 and not ad['thumbnailUrl']:
             continue
         exist = flats.find_one({'_id': ad['_id']})
@@ -94,21 +96,17 @@ def processing_data():
             if exist['history_price'][-1][0] != int(ad['price']):
                 exist["history_price"].append((int(ad['price']), now_time))
                 exist["last_update"] = now_time
-                new_price_ads.append(exist)
+                updated_ads.append(exist)
             flats.find_one_and_replace({"_id": ad['_id']}, exist)
 
-    removed = flats.update_many({'last_seen': {'$lt': now_time}},
+    removed_ads = flats.update_many({'last_seen': {'$lt': now_time}},
                                 {'$set': {'removed': True}})
-    # updated = list(flats.find({'last_update': {'$gte': now_time}}))
-    # if updated:
-    #     for i, ad in enumerate(updated):
-    #         if i == 0:
-    #             send_ad_to_telegram(ad)
-    #             sleep(5)
+
     for new_ad in new_ads:
         send_ad_to_telegram(new_ad)
         sleep(5)
 
-    for new_price_ad in new_price_ads:
-        send_comment_for_ad_to_telegram(new_price_ad)
+    for updated_ad in updated_ads:
+        send_comment_for_ad_to_telegram(updated_ad)
+        edit_ad_in_telegram(updated_ad, 'update')
         sleep(5)
