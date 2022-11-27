@@ -75,7 +75,9 @@ def get_data(
 def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
-
+    new_ads = []
+    updated_ads = []
+    returned_ads = []
     for ad in get_data():
         if int(ad['id']) < 1000000000 and not ad['thumbnailUrl']:
             continue
@@ -92,15 +94,22 @@ def processing_data():
             send_ad_to_telegram(ad)
             sleep(5)
         else:
-            exist["last_seen"] = now_time
-            exist["removed"] = False
             if exist['history_price'][-1][0] != int(ad['price']):
                 exist["history_price"].append((int(ad['price']), now_time))
                 exist["last_update"] = now_time
-                send_comment_for_ad_to_telegram(ad)
+                send_comment_for_ad_to_telegram(exist)
                 sleep(5)
-                edit_ad_in_telegram(ad, 'update')
+                edit_ad_in_telegram(exist, 'update')
                 sleep(5)
+            if exist["removed"]:
+                if len(exist["history_price"]) > 0:
+                    edit_ad_in_telegram(exist, 'update')
+                    sleep(5)
+                else:
+                    edit_ad_in_telegram(exist, 'new')
+                    sleep(5)
+            exist["last_seen"] = now_time
+            exist["removed"] = False
             flats.find_one_and_replace({"_id": ad['_id']}, exist)
 
     removed_ads = flats.find({"last_seen": {"$lt": now_time}})

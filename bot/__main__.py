@@ -26,13 +26,13 @@ def make_caption(ad, status='new'):
         caption = '<a href="{}">{}</a>\n<s>{} TL</s> {} TL / {}'
         return caption.format(link, ad['title'], first_price, last_price, date)
     elif status == 'remove':
-        caption = '<a href="#">{}</a>\n<b>{}</b> / {}'
-        return caption.format(ad['title'], 'Not relevant', date)
+        caption = '<a href="{}">{}</a>\n<b>{}</b> / {}'
+        return caption.format(link, ad['title'], 'Not relevant', date)
 
 
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.get('telegram_chat_message_id')
-
+    logging.info(telegram_chat_message_id)
     if telegram_chat_message_id:
         format_new_price = f"{ad['history_price'][-1][0]:,.0f}".replace(',', ' ')
         price_diff = ad['history_price'][-1][0] - ad['history_price'][-2][0]
@@ -48,7 +48,7 @@ def send_comment_for_ad_to_telegram(ad):
         )
 
 
-def edit_ad_in_telegram(ad, status=None):
+def edit_ad_in_telegram(ad, status):
     telegram_channel_message_id = ad.get('telegram_channel_message_id')
 
     if telegram_channel_message_id:
@@ -69,21 +69,25 @@ def send_ad_to_telegram(ad):
         bot.send_message(text=caption, **kw)
 
 
-@bot.message_handler(content_types=['photo', 'text'])
+@bot.message_handler(content_types=['photo'])
+@bot.message_handler(func=lambda message: True)
 def get_telegram_message_id(message):
     telegram_chat_message_id = message.message_id
     if message.forward_from_chat and message.forward_from_chat.id == int(channel_id):
         telegram_channel_message_id = message.forward_from_message_id
+        logging.info(message.json)
         try:
             if message.content_type == 'photo':
-                url = message.json['caption_entities']['url']
+                url = message.json['caption_entities'][0]['url']
             else:
-                url = message.json['entities']['url']
-        except Exception:
+                url = message.json['entities'][0]['url']
+        except Exception as e:
+            logging.error(e)
             url = None
+        logging.info(url)
         if url:
             url = url.replace('https://www.sahibinden.com', '')
-        ad = get_db().flats.find_one({'url': url})
+            ad = get_db().flats.find_one({'url': url})
         if ad:
             ad['telegram_channel_message_id'] = telegram_channel_message_id
             ad['telegram_chat_message_id'] = telegram_chat_message_id
