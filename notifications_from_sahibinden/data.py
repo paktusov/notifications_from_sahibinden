@@ -2,12 +2,31 @@ from datetime import datetime
 import json
 import logging
 import re
+from urllib.parse import urlencode
 from time import sleep
+from typing import Any
 
+from pydantic import BaseModel, Field
 from selenium import webdriver
 
 from notifications_from_sahibinden.mongo import get_db
+from notifications_from_sahibinden.models import Ad, Price
 from bot.__main__ import send_ad_to_telegram, send_comment_for_ad_to_telegram, edit_ad_in_telegram
+
+
+SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers?'
+SAHIBINDEN_DEFAULT_PARAMS = {
+    'data': '1day',
+    'address_country': '1',
+    'summary': 'm%3AincludeProjectSummaryFields=true',
+    'language': 'tr',
+    'category': '16624',
+    'address_town': '83',
+    'price_currency': '1',
+    'address_city': '7',
+    'pagingOffset': '0',
+    'price_max': '12000',
+}
 
 
 def save_data(data):
@@ -16,34 +35,8 @@ def save_data(data):
         json.dump(data, file)
 
 
-def get_data(
-        url: str = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers?',
-        date: str = 'date=1day',
-        address_country: str = 'address_country=1',
-        summary: str = 'm%3AincludeProjectSummaryFields=true',
-        language: str = 'language=tr',
-        category: str = 'category=16624',
-        address_town: str = 'address_town=83',
-        price_currency: str = 'price_currency=1',
-        address_city: str = 'address_city=7',
-        pagingOffset: str = 'pagingOffset=0',
-        price_max: str = 'price_max=12000'
-        ) -> json:
-
-    link = url + '&'.join(
-            [
-                date,
-                address_country,
-                summary,
-                language,
-                category,
-                address_town,
-                price_currency,
-                address_city,
-                pagingOffset,
-                price_max
-            ]
-        )
+def get_data_from_sah(**url_params: Any) -> list[Ad]:
+    link = SAHIBINDEN_HOST + '?' + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params})
 
     options = webdriver.ChromeOptions()
     options.add_argument("start-maximized")
@@ -69,52 +62,32 @@ def get_data(
     sleep(4)
     driver.close()
     driver.quit()
-    return data['classifiedMarkers']
+    return [
+        Ad(**row)
+        for row in data['classifiedMarkers']
+        if int(row['id']) < 1000000000 and not row['thumbnailUrl']
+    ]
 
 
 def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
-    new_ads = []
-    updated_ads = []
-    returned_ads = []
-    for ad in get_data():
-        if int(ad['id']) < 1000000000 and not ad['thumbnailUrl']:
-            continue
 
-        ad['_id'] = ad.pop('id')
-        ad['short_url'] = f'https://www.sahibinden.com/{ad["_id"]}'
-        exist = flats.find_one({'_id': ad['_id']})
-        if not exist:
-            ad['history_price'] = [(int(ad['price']), now_time)]
-            ad["last_seen"] = now_time
-            ad["last_update"] = now_time
-            ad["removed"] = False
-            flats.insert_one(ad)
-            send_ad_to_telegram(ad)
-            sleep(5)
-        else:
-            if exist['history_price'][-1][0] != int(ad['price']):
-                exist["history_price"].append((int(ad['price']), now_time))
-                exist["last_update"] = now_time
-                send_comment_for_ad_to_telegram(exist)
-                sleep(5)
-                edit_ad_in_telegram(exist, 'update')
-                sleep(5)
-            if exist["removed"]:
-                if len(exist["history_price"]) > 0:
-                    edit_ad_in_telegram(exist, 'update')
-                    sleep(5)
-                else:
-                    edit_ad_in_telegram(exist, 'new')
-                    sleep(5)
-            exist["last_seen"] = now_time
-            exist["removed"] = False
-            flats.find_one_and_replace({"_id": ad['_id']}, exist)
+    parsed_ads = get_data_from_sah()
 
-    removed_ads = flats.find({"last_seen": {"$lt": now_time}})
-    for removed_ad in removed_ads:
-        removed_ad["removed"] = True
-        flats.find_one_and_replace({"_id": removed_ad['_id']}, removed_ad)
-        edit_ad_in_telegram(removed_ad, 'remove')
-        sleep(5)
+    ids = [ad.id for ad in parsed_ads]
+    existed_ads = {
+        ad['_id']: Ad(**ad)
+        for ad in flats.find_all({'_id': {'$in': ids}})
+    }
+
+    for ad in parsed_ads:
+        if ad.id in existed_ads:
+            ad.update_from_existed(existed_ads[ad.id])
+        ad.save()
+
+    missed_ad = flats.find({
+        "last_seen": {"$lt": now_time}, "removed": False
+    })
+    for ad in missed_ad.values():
+        ad.remove()

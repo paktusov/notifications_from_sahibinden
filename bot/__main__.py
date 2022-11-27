@@ -3,6 +3,7 @@ import telebot
 
 from config import telegram_config
 from notifications_from_sahibinden.mongo import get_db
+from notifications_from_sahibinden.models import Ad, Price
 
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
 
 
-def make_caption(ad, status='new'):
+def make_caption(ad: Ad, status='new'):
     first_price = f"{ad['history_price'][0][0]:,.0f}".replace(',', ' ')
     last_price = f"{ad['history_price'][-1][0]:,.0f}".replace(',', ' ')
     date = ad['history_price'][-1][1].strftime('%d.%m.%Y')
@@ -48,19 +49,19 @@ def send_comment_for_ad_to_telegram(ad):
         )
 
 
-def edit_ad_in_telegram(ad, status):
-    telegram_channel_message_id = ad.get('telegram_channel_message_id')
+def edit_ad_in_telegram(ad: Ad, status):
+    telegram_channel_message_id = ad.telegram_channel_message_id
 
     if telegram_channel_message_id:
         caption = make_caption(ad, status)
         kw = dict(chat_id=channel_id, message_id=telegram_channel_message_id, parse_mode='HTML')
-        if ad['thumbnailUrl']:
+        if ad.thumbnail_url:
             bot.edit_message_caption(caption=caption, **kw)
         else:
             bot.edit_message_text(text=caption, **kw)
 
 
-def send_ad_to_telegram(ad):
+def send_ad_to_telegram(ad: Ad):
     caption = make_caption(ad)
     kw = dict(chat_id=channel_id, parse_mode='HTML')
     if ad['thumbnailUrl']:
