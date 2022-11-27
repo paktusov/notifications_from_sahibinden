@@ -1,23 +1,23 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 from typing import Any
 
-from bot import send_ad_to_telegram, edit_ad_in_telegram, send_comment_for_ad_to_telegram
-from notifications_from_sahibinden.mongo import db
+# from bot import send_ad_to_telegram, edit_ad_in_telegram, send_comment_for_ad_to_telegram
+# from notifications_from_sahibinden.mongo import db
 
 
 class Price(BaseModel):
     price: float
-    updated: datetime
+    updated: datetime = Field(default_factory=datetime.now)
 
 
 class Ad(BaseModel):
-    id: str = Field(alise='_id')
-    created: datetime = Field(factory=datetime.now)
-    last_update: datetime = Field(factory=datetime.now)
-    last_seen: datetime = Field(factory=datetime.now)
-    thumbnail_url: str = Field(alias='thumbnailUrl')
-    history_price: list[Price] = Field(factory=list)
+    id: str = Field(alias='_id')
+    created: datetime = Field(default_factory=datetime.now)
+    last_update: datetime = Field(default_factory=datetime.now)
+    last_seen: datetime = Field(default_factory=datetime.now)
+    thumbnail_url: str = Field(alias='thumbnailUrl', default='')
+    history_price: list[Price] = Field(default_factory=list)
     telegram_channel_message_id: str = ''
     telegram_chat_message_id: str = ''
     removed: bool = False
@@ -37,6 +37,16 @@ class Ad(BaseModel):
     @property
     def short_url(self):
         return f'https://www.sahibinden.com/{self.id}'
+
+    @root_validator(pre=True)
+    def fill_history_price(cls, values):
+        return dict(
+            **values,
+            _id=values.get('_id', values.get['id']),
+            history_price=[
+                dict(price=values['price'])
+            ]
+        )
 
     def update_from_existed(self, existed: 'Ad'):
         if existed.last_price != self.last_price:
