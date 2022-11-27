@@ -3,7 +3,6 @@ import json
 import logging
 import re
 from time import sleep
-
 from selenium import webdriver
 
 from notifications_from_sahibinden.mongo import get_db
@@ -114,6 +113,8 @@ def processing_data():
 
     removed_ads = flats.find({"last_seen": {"$lt": now_time}})
     for removed_ad in removed_ads:
+        if removed_ad['removed']:
+            continue
         removed_ad["removed"] = True
         flats.find_one_and_replace({"_id": removed_ad['_id']}, removed_ad)
         edit_ad_in_telegram(removed_ad, 'remove')
