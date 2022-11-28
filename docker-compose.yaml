@@ -10,7 +10,7 @@ services:
   celery:
     build:
       context: .
-      dockerfile: ./deploy/notifications_from_sahibinden/Dockerfile
+      dockerfile: ./deploy/app/Dockerfile
     restart: always
     environment:
       - TZ=Europe/Istanbul
@@ -35,7 +35,7 @@ services:
   telegram:
     build:
       context: .
-      dockerfile: ./deploy/notifications_from_sahibinden/Dockerfile
+      dockerfile: ./deploy/app/Dockerfile
     restart: always
     environment:
       - TZ=Europe/Istanbul

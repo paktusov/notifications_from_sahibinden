@@ -6,19 +6,17 @@ from urllib.parse import urlencode
 from time import sleep
 from typing import Any
 
-from pydantic import BaseModel, Field
 from selenium import webdriver
 
-from notifications_from_sahibinden.mongo import get_db
-from notifications_from_sahibinden.models import Ad, Price
-from bot.__main__ import send_ad_to_telegram, send_comment_for_ad_to_telegram, edit_ad_in_telegram
+from app.mongo import get_db
+from app.models import Ad
 
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers?'
 SAHIBINDEN_DEFAULT_PARAMS = {
-    'data': '1day',
+    'date': '1day',
     'address_country': '1',
-    'summary': 'm%3AincludeProjectSummaryFields=true',
+    # 'm%3AincludeProjectSummaryFields': 'true',
     'language': 'tr',
     'category': '16624',
     'address_town': '83',
@@ -36,7 +34,7 @@ def save_data(data):
 
 
 def get_data_from_sah(**url_params: Any) -> list[Ad]:
-    link = SAHIBINDEN_HOST + '?' + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params})
+    link = SAHIBINDEN_HOST + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params}) + '&m%3AincludeProjectSummaryFields=true'
 
     options = webdriver.ChromeOptions()
     options.add_argument("start-maximized")
@@ -56,6 +54,8 @@ def get_data_from_sah(**url_params: Any) -> list[Ad]:
 
     driver.get('https://www.sahibinden.com')
     sleep(4)
+    logging.info(link)
+    print(link)
     driver.get(link)
     html = driver.page_source
     data = json.loads(re.sub(r'(\<([^>]+)>)', '', html))
@@ -65,7 +65,7 @@ def get_data_from_sah(**url_params: Any) -> list[Ad]:
     return [
         Ad(**row)
         for row in data['classifiedMarkers']
-        if int(row['id']) < 1000000000 and not row['thumbnailUrl']
+        if not (int(row['id']) < 1000000000 and not row['thumbnailUrl'])
     ]
 
 
@@ -76,9 +76,15 @@ def processing_data():
     parsed_ads = get_data_from_sah()
 
     ids = [ad.id for ad in parsed_ads]
+    print(ids)
+    for ad in flats.find({'_id': {'$in': ids}}):
+        # print(ad.history_price)
+        print(ad['history_price'])
+
+
     existed_ads = {
         ad['_id']: Ad(**ad)
-        for ad in flats.find_all({'_id': {'$in': ids}})
+        for ad in flats.find({'_id': {'$in': ids}})
     }
 
     for ad in parsed_ads:
@@ -86,8 +92,13 @@ def processing_data():
             ad.update_from_existed(existed_ads[ad.id])
         ad.save()
 
-    missed_ad = flats.find({
-        "last_seen": {"$lt": now_time}, "removed": False
-    })
-    for ad in missed_ad.values():
+    missed_ad = {
+        ad['_id']: Ad(**ad)
+        for ad in flats.find({
+            "last_seen": {"$lt": now_time},
+            "removed": False
+        })
+    }
+
+    for ad in missed_ad:
         ad.remove()
