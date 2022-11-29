@@ -63,27 +63,31 @@ class Ad(BaseModel):
         )
 
     def update_from_existed(self, existed: 'Ad'):
-        if existed.last_price != self.last_price:
-            self.history_price = existed.history_price + self.history_price
-            self.last_update = self.last_price_update
-
-        if existed.removed:
-            self.last_condition_removed = True
-
         self.telegram_channel_message_id = existed.telegram_channel_message_id
         self.telegram_chat_message_id = existed.telegram_chat_message_id
         self.created = existed.created
 
+        if existed.last_price != self.last_price:
+            self.history_price = existed.history_price + self.history_price
+            self.last_update = self.last_price_update
+        else:
+            self.history_price = existed.history_price
+            self.last_update = existed.last_update
+
+        if existed.removed:
+            self.last_condition_removed = True
+
     def save(self):
-        db.flats.insert_one(self.dict(by_alias=True))
+        # db.flats.insert_one(self.dict(by_alias=True))
+        db.flats.find_one_and_replace({"_id": self.id}, self.dict(by_alias=True), upsert=True)
         self.telegram_notify()
 
     def telegram_notify(self):
         if self.removed:
             edit_ad_in_telegram(self, 'remove')
-        elif len(self.history_price) == 1 and self.last_update == self.created:
+        elif self.last_seen == self.created:
             send_ad_to_telegram(self)
-        elif self.last_price_update == self.last_update:
+        elif self.last_seen == self.last_update:
             send_comment_for_ad_to_telegram(self)
             edit_ad_in_telegram(self, 'update')
         elif self.last_condition_removed:

@@ -76,11 +76,6 @@ def processing_data():
     parsed_ads = get_data_from_sah()
 
     ids = [ad.id for ad in parsed_ads]
-    print(ids)
-    for ad in flats.find({'_id': {'$in': ids}}):
-        # print(ad.history_price)
-        print(ad['history_price'])
-
 
     existed_ads = {
         ad['_id']: Ad(**ad)
