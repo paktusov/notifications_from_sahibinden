@@ -90,32 +90,36 @@ def processing_data():
             ad["last_update"] = now_time
             ad["removed"] = False
             flats.insert_one(ad)
-            send_ad_to_telegram(ad)
-            sleep(5)
+            new_ads.append(ad)
         else:
             if exist['history_price'][-1][0] != int(ad['price']):
                 exist["history_price"].append((int(ad['price']), now_time))
                 exist["last_update"] = now_time
-                send_comment_for_ad_to_telegram(exist)
-                sleep(5)
-                edit_ad_in_telegram(exist, 'update')
-                sleep(5)
-            if exist["removed"]:
-                if len(exist["history_price"]) > 0:
-                    edit_ad_in_telegram(exist, 'update')
-                    sleep(5)
-                else:
-                    edit_ad_in_telegram(exist, 'new')
-                    sleep(5)
+                updated_ads.append(exist)
+            # if exist["removed"]:
+            #     if len(exist["history_price"]) > 0:
+            #         edit_ad_in_telegram(exist, 'update')
+            #         sleep(5)
+            #     else:
+            #         edit_ad_in_telegram(exist, 'new')
+            #         sleep(5)
             exist["last_seen"] = now_time
             exist["removed"] = False
             flats.find_one_and_replace({"_id": ad['_id']}, exist)
 
-    removed_ads = flats.find({"last_seen": {"$lt": now_time}})
+    removed_ads = flats.find({"last_seen": {"$lt": now_time}, "removed": False})
     for removed_ad in removed_ads:
-        if removed_ad['removed']:
-            continue
         removed_ad["removed"] = True
         flats.find_one_and_replace({"_id": removed_ad['_id']}, removed_ad)
-        edit_ad_in_telegram(removed_ad, 'remove')
+        # edit_ad_in_telegram(removed_ad, 'remove')
+        # sleep(5)
+
+    for ad in new_ads:
+        send_ad_to_telegram(ad)
+        sleep(5)
+
+    for ad in updated_ads:
+        send_comment_for_ad_to_telegram(ad)
+        sleep(5)
+        edit_ad_in_telegram(ad, 'update')
         sleep(5)
