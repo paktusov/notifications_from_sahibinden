@@ -87,13 +87,12 @@ def processing_data():
             ad.update_from_existed(existed_ads[ad.id])
         ad.save()
 
-    missed_ad = {
-        ad['_id']: Ad(**ad)
-        for ad in flats.find({
-            "last_seen": {"$lt": now_time},
-            "removed": False
-        })
-    }
-
-    for ad in missed_ad:
-        ad.remove()
+    # missed_ad = [
+    #     Ad(**ad)
+    #     for ad in flats.find({
+    #         "last_seen": {"$lt": now_time},
+    #         "removed": False
+    #     })
+    # ]
+    # for ad in missed_ad:
+    #     ad.remove()
