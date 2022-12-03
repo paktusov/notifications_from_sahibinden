@@ -10,19 +10,19 @@ services:
   celery:
     build:
       context: .
-      dockerfile: ./deploy/notifications_from_sahibinden/Dockerfile
+      dockerfile: ./deploy/app/Dockerfile
     restart: always
     environment:
       - TZ=Europe/Istanbul
     volumes:
       - ./:/opt/app
 
-  selenium:
-    image: selenium/standalone-chrome
-    restart: always
-    ports:
-      - 4444:4444
-    shm_size: '2gb'
+#  selenium:
+#    image: selenium/standalone-chrome
+#    restart: always
+#    ports:
+#      - 4444:4444
+#    shm_size: '2gb'
 
   mongo:
     image: mongo
@@ -31,3 +31,14 @@ services:
       - 27017:27017
     volumes:
       - ./db:/data/db
+
+  telegram:
+    build:
+      context: .
+      dockerfile: ./deploy/app/Dockerfile
+    restart: always
+    environment:
+      - TZ=Europe/Istanbul
+    volumes:
+      - ./:/opt/app
+    command: ['poetry', 'run', 'python', '-m', 'bot']
