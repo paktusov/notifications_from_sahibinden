@@ -17,12 +17,12 @@ services:
     volumes:
       - ./:/opt/app
 
-  selenium:
-    image: selenium/standalone-chrome
-    restart: always
-    ports:
-      - 4444:4444
-    shm_size: '2gb'
+#  selenium:
+#    image: selenium/standalone-chrome
+#    restart: always
+#    ports:
+#      - 4444:4444
+#    shm_size: '2gb'
 
   mongo:
     image: mongo
