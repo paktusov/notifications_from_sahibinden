@@ -14,7 +14,7 @@ from app.models import Ad
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers?'
 SAHIBINDEN_DEFAULT_PARAMS = {
-    'date': '1day',
+    'date': '7days', #1day
     'address_country': '1',
     # 'm%3AincludeProjectSummaryFields': 'true',
     'language': 'tr',
@@ -86,13 +86,15 @@ def processing_data():
         if ad.id in existed_ads:
             ad.update_from_existed(existed_ads[ad.id])
         ad.save()
+        logging.info(f'Ad {ad.id} saved')
 
-    # missed_ad = [
-    #     Ad(**ad)
-    #     for ad in flats.find({
-    #         "last_seen": {"$lt": now_time},
-    #         "removed": False
-    #     })
-    # ]
-    # for ad in missed_ad:
-    #     ad.remove()
+    missed_ad = [
+        Ad(**ad)
+        for ad in flats.find({
+            "last_seen": {"$lt": now_time},
+            "removed": False
+        })
+    ]
+    for ad in missed_ad:
+        ad.remove()
+        ad.save()

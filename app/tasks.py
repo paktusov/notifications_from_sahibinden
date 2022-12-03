@@ -14,7 +14,7 @@ app.conf.beat_schedule = dict()
 app.conf.beat_schedule = {
     'add-every-1-minutes': {
         'task': 'app.tasks.start_processing',
-        'schedule': crontab(minute='*/5'),
+        'schedule': crontab(minute='*/30'),
     },
 }
 

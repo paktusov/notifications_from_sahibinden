@@ -1,5 +1,7 @@
 import logging
 import telebot
+from ratelimit import limits, sleep_and_retry
+
 
 from config import telegram_config
 from app.mongo import db
@@ -30,6 +32,8 @@ def make_caption(ad, status='new'):
         return caption.format(link, ad.title, 'Not relevant', date)
 
 
+@sleep_and_retry
+@limits(calls=20, period=59)
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.telegram_chat_message_id
 
@@ -62,6 +66,8 @@ def edit_ad_in_telegram(ad, status):
         bot.edit_message_text(text=caption, **kw)
 
 
+@sleep_and_retry
+@limits(calls=19, period=60, )
 def send_ad_to_telegram(ad):
     caption = make_caption(ad)
     kw = dict(chat_id=channel_id, parse_mode='HTML')

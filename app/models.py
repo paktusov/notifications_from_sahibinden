@@ -3,6 +3,7 @@ from time import sleep
 from enum import Enum
 from pydantic import BaseModel, Field, root_validator
 from typing import Any, Optional
+import logging
 
 from bot import send_ad_to_telegram, edit_ad_in_telegram, send_comment_for_ad_to_telegram
 from app.mongo import db
@@ -80,7 +81,9 @@ class Ad(BaseModel):
     def save(self):
         # db.flats.insert_one(self.dict(by_alias=True))
         db.flats.find_one_and_replace({"_id": self.id}, self.dict(by_alias=True), upsert=True)
+        logging.debug(f'Ad {self.id} added or updated in db')
         self.telegram_notify()
+        logging.debug(f'Ad {self.id} notified to telegram')
 
     def telegram_notify(self):
         if self.removed:
@@ -95,9 +98,7 @@ class Ad(BaseModel):
                 edit_ad_in_telegram(self, 'new')
             else:
                 edit_ad_in_telegram(self, 'update')
-        sleep(5)
 
     def remove(self):
         self.last_condition_removed = False
         self.removed = True
-        self.save()
