@@ -1,9 +1,10 @@
 import logging
 import telebot
+from telebot.types import InputMediaPhoto
 from ratelimit import limits, sleep_and_retry
 
 
-from config import telegram_config
+from config import telegram_config, mapbox_config
 from app.mongo import db
 
 
@@ -15,6 +16,13 @@ bot = telebot.TeleBot(telegram_config.token_antalya_bot)
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
 
+
+def get_map_image(ad):
+    if not ad.lat or not ad.lon:
+        return None
+    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},11,0/600x300?access_token={mapbox_config.token}"
+
+    return url
 
 def make_caption(ad, status='new'):
     first_price = f"{ad.first_price:,.0f}".replace(',', ' ')
@@ -67,19 +75,27 @@ def edit_ad_in_telegram(ad, status):
 
 
 @sleep_and_retry
-@limits(calls=19, period=60, )
+@limits(calls=19, period=60)
 def send_ad_to_telegram(ad):
-    caption = make_caption(ad)
-    kw = dict(chat_id=channel_id, parse_mode='HTML')
     if ad.thumbnail_url:
-        bot.send_photo(photo=ad.thumbnail_url, caption=caption, **kw)
+        media = [InputMediaPhoto(media=ad.thumbnail_url, caption=make_caption(ad), parse_mode='HTML')]
     else:
-        bot.send_message(text=caption, **kw)
+        media = []
+    media.append(InputMediaPhoto(media=get_map_image(ad)))
+    bot.send_media_group(chat_id=channel_id, media=media)
+
+    # caption = make_caption(ad)
+    # kw = dict(chat_id=channel_id, parse_mode='HTML')
+    # if ad.thumbnail_url:
+    #     bot.send_photo(photo=ad.thumbnail_url, caption=caption, **kw)
+    # else:
+    #     bot.send_message(text=caption, **kw)
 
 
 @bot.message_handler(content_types=['photo'])
 @bot.message_handler(func=lambda message: True)
 def get_telegram_message_id(message):
+    print(message)
     telegram_chat_message_id = message.message_id
     if message.forward_from_chat and message.forward_from_chat.id == int(channel_id):
         telegram_channel_message_id = message.forward_from_message_id

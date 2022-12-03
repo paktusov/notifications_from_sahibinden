@@ -12,4 +12,4 @@ RUN poetry config virtualenvs.create false && poetry install
 
 COPY . .
 
-CMD ["poetry", "run", "celery", "-A", "app.tasks", "worker", "-B" "--loglevel=info"]
+CMD ["poetry", "run", "celery", "-A", "app.tasks", "worker", "-B"]
