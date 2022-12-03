@@ -29,11 +29,11 @@ def make_caption(ad, status='new'):
         return caption.format(link, ad.title, first_price, last_price, date)
     elif status == 'remove':
         caption = '<a href="{}">{}</a>\n<b>{}</b> / {}'
-        return caption.format(link, ad.title, 'Not relevant', date)
+        return caption.format(link, ad.title, 'Ad removed', date)
 
 
 @sleep_and_retry
-@limits(calls=20, period=59)
+@limits(calls=19, period=60)
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.telegram_chat_message_id
 

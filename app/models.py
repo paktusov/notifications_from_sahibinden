@@ -1,6 +1,4 @@
 from datetime import datetime
-from time import sleep
-from enum import Enum
 from pydantic import BaseModel, Field, root_validator
 from typing import Any, Optional
 import logging
@@ -79,7 +77,6 @@ class Ad(BaseModel):
             self.last_condition_removed = True
 
     def save(self):
-        # db.flats.insert_one(self.dict(by_alias=True))
         db.flats.find_one_and_replace({"_id": self.id}, self.dict(by_alias=True), upsert=True)
         logging.debug(f'Ad {self.id} added or updated in db')
         self.telegram_notify()
