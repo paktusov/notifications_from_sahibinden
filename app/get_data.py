@@ -7,9 +7,7 @@ from typing import Any
 import requests
 
 from selenium import webdriver
-
-from app.models import Ad
-
+from bs4 import BeautifulSoup
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers'
 SAHIBINDEN_DEFAULT_PARAMS = {
@@ -83,12 +81,6 @@ def save_data(data: dict) -> None:
         json.dump(data, file)
 
 
-def create_models_from_data(data: list[dict]) -> list[Ad]:
-    return [
-        Ad(**row)
-        for row in data['classifiedMarkers']
-        if not (int(row['id']) < 1000000000 and not row['thumbnailUrl'])
-    ]
 
 
 def get_data_with_selenium(**url_params: Any) -> list[dict]:
@@ -131,3 +123,23 @@ def get_data_with_cookies() -> list[dict]:
     print(response.status_code)
     data = response.json()
     return data
+
+
+def get_ad_photos(url: str) -> list[str]:
+    response = requests.get(
+        url=url,
+        cookies=COOKIES,
+        headers=HEADERS,
+    )
+
+    html = BeautifulSoup(response.text, 'html.parser')
+    img_links = []
+    for img in html.find('div', class_='classifiedDetailMainPhoto').find_all('img'):
+        link = img.get('data-src')
+        if link:
+            img_links.append(link)
+        if len(img_links) >= 2:
+            break
+
+    return img_links
+
