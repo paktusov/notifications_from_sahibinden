@@ -3,6 +3,7 @@ from time import sleep
 import telebot
 from telebot.types import InputMediaPhoto
 from telebot.apihelper import ApiTelegramException
+from telebot.util import antiflood
 
 from config import telegram_config, mapbox_config
 from app.mongo import db
@@ -52,7 +53,7 @@ def make_caption(ad, status='new'):
         return caption.format(link, ad.title, 'Ad removed', date)
 
 
-@retry_to_telegram_api
+@antiflood
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.telegram_chat_message_id
 
@@ -72,8 +73,7 @@ def send_comment_for_ad_to_telegram(ad):
     )
 
 
-
-@retry_to_telegram_api
+@antiflood
 def edit_ad_in_telegram(ad, status):
     telegram_channel_message_id = ad.telegram_channel_message_id
 
@@ -87,7 +87,7 @@ def edit_ad_in_telegram(ad, status):
         bot.edit_message_text(text=caption, **kw)
 
 
-@retry_to_telegram_api
+@antiflood
 def send_ad_to_telegram(ad):
     media = [InputMediaPhoto(media=get_map_image(ad), caption=make_caption(ad), parse_mode='HTML')]
     for photo in get_ad_photos(ad.short_url):
