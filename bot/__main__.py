@@ -3,8 +3,6 @@ from time import sleep
 import telebot
 from telebot.types import InputMediaPhoto
 from telebot.apihelper import ApiTelegramException
-from ratelimit import limits, sleep_and_retry
-
 
 from config import telegram_config, mapbox_config
 from app.mongo import db
@@ -18,6 +16,17 @@ bot = telebot.TeleBot(telegram_config.token_antalya_bot)
 
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
+
+
+def retry_to_telegram_api(func):
+    def wrapper(*args):
+        try:
+            func(*args)
+        except ApiTelegramException as error:
+            time_to_sleep = int(error.result_json['parameters']['retry_after'])
+            sleep(time_to_sleep + 1)
+            func(*args)
+    return wrapper
 
 
 def get_map_image(ad):
@@ -43,6 +52,7 @@ def make_caption(ad, status='new'):
         return caption.format(link, ad.title, 'Ad removed', date)
 
 
+@retry_to_telegram_api
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.telegram_chat_message_id
 
@@ -54,19 +64,16 @@ def send_comment_for_ad_to_telegram(ad):
     icon = '📉 ' if price_diff < 0 else '📈 +'
     comment = '{}{} TL = {} TL'
     format_comment = comment.format(icon, format_price_diff, format_new_price)
-    try:
-        bot.send_message(
-            chat_id=chat_id,
-            text=format_comment,
-            reply_to_message_id=telegram_chat_message_id,
-            parse_mode='HTML'
-        )
-    except ApiTelegramException as error:
-        time_to_sleep = int(error.result_json['parameters']['retry_after'])
-        sleep(time_to_sleep + 1)
-        send_comment_for_ad_to_telegram(ad)
+    bot.send_message(
+        chat_id=chat_id,
+        text=format_comment,
+        reply_to_message_id=telegram_chat_message_id,
+        parse_mode='HTML'
+    )
 
 
+
+@retry_to_telegram_api
 def edit_ad_in_telegram(ad, status):
     telegram_channel_message_id = ad.telegram_channel_message_id
 
@@ -74,29 +81,18 @@ def edit_ad_in_telegram(ad, status):
         return
     caption = make_caption(ad, status)
     kw = dict(chat_id=channel_id, message_id=telegram_channel_message_id, parse_mode='HTML')
-    try:
-        if ad.thumbnail_url:
-            bot.edit_message_caption(caption=caption, **kw)
-        else:
-            bot.edit_message_text(text=caption, **kw)
-    except ApiTelegramException as error:
-        time_to_sleep = int(error.result_json['parameters']['retry_after'])
-        sleep(time_to_sleep + 1)
-        edit_ad_in_telegram(ad, status)
+    if ad.thumbnail_url:
+        bot.edit_message_caption(caption=caption, **kw)
+    else:
+        bot.edit_message_text(text=caption, **kw)
 
 
-@sleep_and_retry
-@limits(calls=19, period=60)
+@retry_to_telegram_api
 def send_ad_to_telegram(ad):
     media = [InputMediaPhoto(media=get_map_image(ad), caption=make_caption(ad), parse_mode='HTML')]
     for photo in get_ad_photos(ad.short_url):
         media.append(InputMediaPhoto(media=photo))
-    try:
-        bot.send_media_group(chat_id=channel_id, media=media)
-    except ApiTelegramException as error:
-        time_to_sleep = int(error.result_json['parameters']['retry_after'])
-        sleep(time_to_sleep + 1)
-        send_ad_to_telegram(ad)
+    bot.send_media_group(chat_id=channel_id, media=media)
 
 
 @bot.message_handler(content_types=['photo'])

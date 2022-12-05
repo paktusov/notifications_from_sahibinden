@@ -1,4 +1,5 @@
 from datetime import datetime
+from random import shuffle
 import json
 import re
 from urllib.parse import urlencode
@@ -7,7 +8,8 @@ from typing import Any
 import requests
 
 from selenium import webdriver
-from bs4 import BeautifulSoup
+from pyquery import PyQuery
+
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers'
 SAHIBINDEN_DEFAULT_PARAMS = {
@@ -132,14 +134,14 @@ def get_ad_photos(url: str) -> list[str]:
         headers=HEADERS,
     )
 
-    html = BeautifulSoup(response.text, 'html.parser')
+    html = PyQuery(response.text)
     img_links = []
-    for img in html.find('div', class_='classifiedDetailMainPhoto').find_all('img'):
-        link = img.get('data-src')
+    for div in html('div.megaPhotoThmbItem'):
+        link = PyQuery(div).find('img').attr('data-source')
         if link:
             img_links.append(link)
-        if len(img_links) >= 2:
-            break
 
-    return img_links
+    shuffle(img_links)
+
+    return img_links[:3]
 
