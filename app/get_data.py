@@ -13,7 +13,8 @@ from pyquery import PyQuery
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers'
 SAHIBINDEN_DEFAULT_PARAMS = {
-    'date': '7days', #1day
+    # (1day, 7days, 15days, 30days)
+    'date': '7days',
     'address_country': '1',
     'm:includeProjectSummaryFields': 'true',
     'language': 'tr',
@@ -83,8 +84,6 @@ def save_data(data: dict) -> None:
         json.dump(data, file)
 
 
-
-
 def get_data_with_selenium(**url_params: Any) -> list[dict]:
     link = SAHIBINDEN_HOST + '?' + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params}) + '&m%3AincludeProjectSummaryFields=true'
 
@@ -122,7 +121,6 @@ def get_data_with_cookies() -> list[dict]:
         cookies=COOKIES,
         headers=HEADERS,
     )
-    print(response.status_code)
     data = response.json()
     return data
 
@@ -133,15 +131,23 @@ def get_ad_photos(url: str) -> list[str]:
         cookies=COOKIES,
         headers=HEADERS,
     )
-
     html = PyQuery(response.text)
     img_links = []
     for div in html('div.megaPhotoThmbItem'):
         link = PyQuery(div).find('img').attr('data-source')
         if link:
             img_links.append(link)
-
     shuffle(img_links)
-
     return img_links[:3]
 
+
+def get_data_ad(url: str) -> dict:
+    response = requests.get(
+        url=url,
+        cookies=COOKIES,
+        headers=HEADERS,
+    )
+    html = PyQuery(response.text)
+    customdata = json.loads(html('#gaPageViewTrackingJson').attr('data-json'))
+    data = dict([(i['name'], i['value']) for i in customdata['customVars']])
+    return data

@@ -16,6 +16,7 @@ python-dotenv = "^0.21.0"
 celery = {extras = ["redis"], version = "^5.2.7"}
 ratelimit = "^2.2.1"
 pyquery = "^1.4.3"
+ipython = "^8.7.0"
 
 [tool.poetry.dev-dependencies]
 

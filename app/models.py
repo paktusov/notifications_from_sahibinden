@@ -3,8 +3,24 @@ from pydantic import BaseModel, Field, root_validator
 from typing import Any, Optional
 import logging
 
-from bot import send_ad_to_telegram, edit_ad_in_telegram, send_comment_for_ad_to_telegram
-from app.mongo import db
+
+class DataAd(BaseModel):
+    district: str
+    area: str
+    creation_date: datetime
+    gross_area: int
+    net_area: int
+    room_count: str
+    building_age: str
+    floor: str
+    building_floor_count: int
+    heating_type: str
+    bathroom_count: int
+    balcony: bool
+    furniture: bool
+    using_status: str
+    dues: str
+    deposit: str
 
 
 class Price(BaseModel):
@@ -28,6 +44,8 @@ class Ad(BaseModel):
     lon: Optional[float]
     attributes: Optional[dict[str, str]]
     url: Optional[str]
+    data: Optional[DataAd]
+    photos: Optional[list[str]]
 
 
     @property
@@ -43,8 +61,13 @@ class Ad(BaseModel):
         return self.history_price[-1].updated
 
     @property
+    def full_url(self):
+        return f'https://sahibinden.com{self.url}'
+
+    @property
     def short_url(self):
         return f'https://www.sahibinden.com/{self.id}'
+
 
     @root_validator(pre=True)
     def init_ad(cls, values):
@@ -52,6 +75,7 @@ class Ad(BaseModel):
         values['last_update'] = values.get('last_update', now)
         values['last_seen'] = now
         values['created'] = values.get('created', now)
+        values['url'] = values.get('url').replace('detay', 'detail').replace('ilan', 'listing')
         if not values.get('history_price'):
             values['history_price'] = [Price(price=values['price'], updated=now)]
         # values['history_price'] = values.get('history_price', [Price(price=values['price'], updated=now)])
@@ -65,6 +89,7 @@ class Ad(BaseModel):
         self.telegram_channel_message_id = existed.telegram_channel_message_id
         self.telegram_chat_message_id = existed.telegram_chat_message_id
         self.created = existed.created
+        self.data = existed.data
 
         if existed.last_price != self.last_price:
             self.history_price = existed.history_price + self.history_price
@@ -75,26 +100,6 @@ class Ad(BaseModel):
 
         if existed.removed:
             self.last_condition_removed = True
-
-    def save(self):
-        db.flats.find_one_and_replace({"_id": self.id}, self.dict(by_alias=True), upsert=True)
-        logging.debug(f'Ad {self.id} added or updated in db')
-        self.telegram_notify()
-        logging.debug(f'Ad {self.id} notified to telegram')
-
-    def telegram_notify(self):
-        if self.removed:
-            edit_ad_in_telegram(self, 'remove')
-        elif self.last_seen == self.created:
-            send_ad_to_telegram(self)
-        elif self.last_seen == self.last_update:
-            send_comment_for_ad_to_telegram(self)
-            edit_ad_in_telegram(self, 'update')
-        elif self.last_condition_removed:
-            if len(self.history_price) == 1:
-                edit_ad_in_telegram(self, 'new')
-            else:
-                edit_ad_in_telegram(self, 'update')
 
     def remove(self):
         self.last_condition_removed = False

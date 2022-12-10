@@ -1,12 +1,36 @@
 from datetime import datetime
 import logging
 
-from app.get_data import get_data_with_selenium, get_data_with_cookies
+from app.get_data import get_data_ad, get_data_with_cookies, get_ad_photos
 from app.mongo import get_db
-from app.models import Ad
+from app.models import Ad, DataAd
+from bot.__main__ import telegram_notify
+from app.mongo import db
 
 
-def create_models_from_data(data: list[dict]) -> list[Ad]:
+def create_dataad_from_data(data: dict) -> DataAd:
+    return DataAd(
+        district=data.get('loc3'),
+        area=data.get('loc5'),
+        creation_date=datetime.strptime(data.get('Ad Date'), '%d %B %Y'),
+        gross_area=int(data.get('m² (Brüt)')),
+        net_area=int(data.get('m² (Net)')),
+        room_count=data.get('Oda Sayısı'),
+        building_age=data.get('Bina Yaşı'),
+        floor=data.get('Bulunduğu Kat'),
+        building_floor_count=int(data.get('Kat Sayısı')),
+        heating_type=data.get('Isıtma'),
+        bathroom_count=data.get('Banyo Sayısı'),
+        balcony=bool(data.get('Balkon')),
+        furniture=True if data.get('Eşyalı') == 'Yes' else False,
+        using_status=data.get('Kullanım Durumu'),
+        dues=data.get('Aidat (TL)'),
+        deposit=data.get('Depozito (TL)')
+    )
+
+
+def create_ad_from_data(data: list[dict]) -> list[Ad]:
+    # Remove logics from Ad.root_validator
     return [
         Ad(**row)
         for row in data['classifiedMarkers']
@@ -18,7 +42,7 @@ def processing_data():
     flats = get_db().flats
     now_time = datetime.now()
 
-    parsed_ads = create_models_from_data(get_data_with_cookies())
+    parsed_ads = create_ad_from_data(get_data_with_cookies())
 
     ids = [ad.id for ad in parsed_ads]
 
@@ -30,8 +54,12 @@ def processing_data():
     for ad in parsed_ads:
         if ad.id in existed_ads:
             ad.update_from_existed(existed_ads[ad.id])
-        ad.save()
-        logging.info(f'Ad {ad.id} saved')
+        else:
+            ad.data = create_dataad_from_data(get_data_ad(ad.full_url))
+            ad.photos = get_ad_photos(ad.full_url)
+        db.flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
+        # logging.info(f'Ad {ad.id} saved')
+        telegram_notify(ad)
 
     missed_ad = [
         Ad(**ad)
@@ -40,6 +68,8 @@ def processing_data():
             "removed": False
         })
     ]
+
     for ad in missed_ad:
         ad.remove()
-        ad.save()
+        db.flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
+        telegram_notify(ad)

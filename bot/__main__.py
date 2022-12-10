@@ -7,7 +7,6 @@ from telebot.util import antiflood
 
 from config import telegram_config, mapbox_config
 from app.mongo import db
-from app.get_data import get_ad_photos
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ def retry_to_telegram_api(func):
 def get_map_image(ad):
     if not ad.lat or not ad.lon:
         return None
-    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},11,0/1200x600?access_token={mapbox_config.token}"
+    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},12/1200x600?access_token={mapbox_config.token}"
     return url
 
 
@@ -88,7 +87,7 @@ def edit_ad_in_telegram(ad, status):
 
 def send_ad_to_telegram(ad):
     media = [InputMediaPhoto(media=get_map_image(ad), caption=make_caption(ad), parse_mode='HTML')]
-    for photo in get_ad_photos(ad.short_url):
+    for photo in ad.photos:
         media.append(InputMediaPhoto(media=photo))
     antiflood(bot.send_media_group, chat_id=channel_id, media=media)
 
@@ -119,6 +118,21 @@ def get_telegram_message_id(message):
         ad['telegram_channel_message_id'] = telegram_channel_message_id
         ad['telegram_chat_message_id'] = telegram_chat_message_id
         db.flats.find_one_and_replace({'_id': ad['_id']}, ad)
+
+
+def telegram_notify(ad):
+    if ad.removed:
+        edit_ad_in_telegram(ad, 'remove')
+    elif ad.last_seen == ad.created:
+        send_ad_to_telegram(ad)
+    elif ad.last_seen == ad.last_update:
+        send_comment_for_ad_to_telegram(ad)
+        edit_ad_in_telegram(ad, 'update')
+    elif ad.last_condition_removed:
+        if len(ad.history_price) == 1:
+            edit_ad_in_telegram(ad, 'new')
+        else:
+            edit_ad_in_telegram(ad, 'update')
 
 
 if __name__ == '__main__':
