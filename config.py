@@ -36,6 +36,16 @@ class CelerySettings(BaseSettings):
     broker_pool_limit: bool = None
 
 
+class MapboxSettings(BaseSettings):
+    token: str
+    url: str
+
+    class Config:
+        evn_file = ".env"
+        env_prefix = 'mapbox_'
+
+
 telegram_config = TelegramSettings()
 mongo_config = MongoDBSettings()
 celery_config = CelerySettings()
+mapbox_config = MapboxSettings()

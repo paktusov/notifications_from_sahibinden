@@ -1,9 +1,17 @@
 from datetime import datetime
 import logging
 
-from app.get_data import create_models_from_data, get_data_with_selenium, get_data_with_cookies
+from app.get_data import get_data_with_selenium, get_data_with_cookies
 from app.mongo import get_db
 from app.models import Ad
+
+
+def create_models_from_data(data: list[dict]) -> list[Ad]:
+    return [
+        Ad(**row)
+        for row in data['classifiedMarkers']
+        if not (int(row['id']) < 1000000000 and not row['thumbnailUrl'])
+    ]
 
 
 def processing_data():

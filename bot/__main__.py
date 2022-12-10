@@ -1,10 +1,13 @@
 import logging
+from time import sleep
 import telebot
-from ratelimit import limits, sleep_and_retry
+from telebot.types import InputMediaPhoto
+from telebot.apihelper import ApiTelegramException
+from telebot.util import antiflood
 
-
-from config import telegram_config
+from config import telegram_config, mapbox_config
 from app.mongo import db
+from app.get_data import get_ad_photos
 
 
 logger = logging.getLogger(__name__)
@@ -14,6 +17,24 @@ bot = telebot.TeleBot(telegram_config.token_antalya_bot)
 
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
+
+
+def retry_to_telegram_api(func):
+    def wrapper(*args):
+        try:
+            func(*args)
+        except ApiTelegramException as error:
+            time_to_sleep = int(error.result_json['parameters']['retry_after'])
+            sleep(time_to_sleep + 1)
+            func(*args)
+    return wrapper
+
+
+def get_map_image(ad):
+    if not ad.lat or not ad.lon:
+        return None
+    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},11,0/1200x600?access_token={mapbox_config.token}"
+    return url
 
 
 def make_caption(ad, status='new'):
@@ -32,8 +53,6 @@ def make_caption(ad, status='new'):
         return caption.format(link, ad.title, 'Ad removed', date)
 
 
-@sleep_and_retry
-@limits(calls=19, period=60)
 def send_comment_for_ad_to_telegram(ad):
     telegram_chat_message_id = ad.telegram_chat_message_id
 
@@ -45,7 +64,8 @@ def send_comment_for_ad_to_telegram(ad):
     icon = '📉 ' if price_diff < 0 else '📈 +'
     comment = '{}{} TL = {} TL'
     format_comment = comment.format(icon, format_price_diff, format_new_price)
-    bot.send_message(
+    antiflood(
+        bot.send_message,
         chat_id=chat_id,
         text=format_comment,
         reply_to_message_id=telegram_chat_message_id,
@@ -61,20 +81,16 @@ def edit_ad_in_telegram(ad, status):
     caption = make_caption(ad, status)
     kw = dict(chat_id=channel_id, message_id=telegram_channel_message_id, parse_mode='HTML')
     if ad.thumbnail_url:
-        bot.edit_message_caption(caption=caption, **kw)
+        antiflood(bot.edit_message_caption, caption=caption, **kw)
     else:
-        bot.edit_message_text(text=caption, **kw)
+        antiflood(bot.edit_message_text, text=caption, **kw)
 
 
-@sleep_and_retry
-@limits(calls=19, period=60, )
 def send_ad_to_telegram(ad):
-    caption = make_caption(ad)
-    kw = dict(chat_id=channel_id, parse_mode='HTML')
-    if ad.thumbnail_url:
-        bot.send_photo(photo=ad.thumbnail_url, caption=caption, **kw)
-    else:
-        bot.send_message(text=caption, **kw)
+    media = [InputMediaPhoto(media=get_map_image(ad), caption=make_caption(ad), parse_mode='HTML')]
+    for photo in get_ad_photos(ad.short_url):
+        media.append(InputMediaPhoto(media=photo))
+    antiflood(bot.send_media_group, chat_id=channel_id, media=media)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -85,6 +101,8 @@ def get_telegram_message_id(message):
         telegram_channel_message_id = message.forward_from_message_id
         try:
             if message.content_type == 'photo':
+                if 'caption_entities' not in message.json:
+                    return
                 url = message.json['caption_entities'][0]['url']
             else:
                 url = message.json['entities'][0]['url']

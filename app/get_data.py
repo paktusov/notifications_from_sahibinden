@@ -1,4 +1,5 @@
 from datetime import datetime
+from random import shuffle
 import json
 import re
 from urllib.parse import urlencode
@@ -7,8 +8,7 @@ from typing import Any
 import requests
 
 from selenium import webdriver
-
-from app.models import Ad
+from pyquery import PyQuery
 
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers'
@@ -83,12 +83,6 @@ def save_data(data: dict) -> None:
         json.dump(data, file)
 
 
-def create_models_from_data(data: list[dict]) -> list[Ad]:
-    return [
-        Ad(**row)
-        for row in data['classifiedMarkers']
-        if not (int(row['id']) < 1000000000 and not row['thumbnailUrl'])
-    ]
 
 
 def get_data_with_selenium(**url_params: Any) -> list[dict]:
@@ -131,3 +125,23 @@ def get_data_with_cookies() -> list[dict]:
     print(response.status_code)
     data = response.json()
     return data
+
+
+def get_ad_photos(url: str) -> list[str]:
+    response = requests.get(
+        url=url,
+        cookies=COOKIES,
+        headers=HEADERS,
+    )
+
+    html = PyQuery(response.text)
+    img_links = []
+    for div in html('div.megaPhotoThmbItem'):
+        link = PyQuery(div).find('img').attr('data-source')
+        if link:
+            img_links.append(link)
+
+    shuffle(img_links)
+
+    return img_links[:3]
+
