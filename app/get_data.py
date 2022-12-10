@@ -10,6 +10,9 @@ import requests
 from selenium import webdriver
 from pyquery import PyQuery
 
+from config import mapbox_config
+
+
 
 SAHIBINDEN_HOST = 'https://www.sahibinden.com/ajax/mapSearch/classified/markers'
 SAHIBINDEN_DEFAULT_PARAMS = {
@@ -151,3 +154,10 @@ def get_data_ad(url: str) -> dict:
     customdata = json.loads(html('#gaPageViewTrackingJson').attr('data-json'))
     data = dict([(i['name'], i['value']) for i in customdata['customVars']])
     return data
+
+
+def get_map_image(ad):
+    if not ad.lat or not ad.lon:
+        return None
+    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},12/1200x600?access_token={mapbox_config.token}"
+    return url

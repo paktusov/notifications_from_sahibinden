@@ -5,8 +5,10 @@ from telebot.types import InputMediaPhoto
 from telebot.apihelper import ApiTelegramException
 from telebot.util import antiflood
 
-from config import telegram_config, mapbox_config
+from config import telegram_config
 from app.mongo import db
+from app.models import Ad
+from app.get_data import get_map_image
 
 
 logger = logging.getLogger(__name__)
@@ -29,30 +31,32 @@ def retry_to_telegram_api(func):
     return wrapper
 
 
-def get_map_image(ad):
-    if not ad.lat or not ad.lon:
-        return None
-    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},12/1200x600?access_token={mapbox_config.token}"
-    return url
-
-
-def make_caption(ad, status='new'):
+def make_caption(ad: Ad, status: str = 'new') -> str:
     first_price = f"{ad.first_price:,.0f}".replace(',', ' ')
     last_price = f"{ad.last_price:,.0f}".replace(',', ' ')
     date = ad.last_price_update.strftime('%d.%m.%Y')
-    link = ad.short_url
+    hiperlink = f'<a href="{ad.short_url}">{ad.title}</a>\n'
     if status == 'new':
-        caption = '<a href="{}">{}</a>\n{} TL / {}'
-        return caption.format(link, ad.title, last_price, date)
-    if status == 'update':
-        caption = '<a href="{}">{}</a>\n<s>{} TL</s> {} TL / {}'
-        return caption.format(link, ad.title, first_price, last_price, date)
-    elif status == 'remove':
-        caption = '<a href="{}">{}</a>\n<b>{}</b> / {}'
-        return caption.format(link, ad.title, 'Ad removed', date)
+        price = f'{last_price} TL on {date}\n'
+    elif status == 'update':
+        price = f'<s>{first_price} TL</s> {last_price} TL on {date}\n'
+    else:
+        price = hiperlink + f'<b>Ad removed</b> on {date}\n'
+    if not ad.data:
+        caption = hiperlink + price
+        return caption
+    location = f'Antalya / {ad.data.district} / {ad.data.area}\n'
+    rooms = f'Number of rooms: {ad.data.room_count}\n'
+    area = f'Area: {ad.data.net_area} ({ad.data.gross_area}) m²\n'
+    floor = f'Floor: {ad.data.floor} of {ad.data.building_floor_count} floors\n'
+    age = f'Building age: {ad.data.building_age} years\n'
+    heating = f'Heating: {ad.data.heating_type}\n'
+    furniture = 'With furniture' if ad.data.furniture else 'Without furniture'
+    caption = hiperlink + price + location + rooms + area + floor + age + heating + furniture
+    return caption
 
 
-def send_comment_for_ad_to_telegram(ad):
+def send_comment_for_ad_to_telegram(ad: Ad) -> None:
     telegram_chat_message_id = ad.telegram_chat_message_id
 
     if not telegram_chat_message_id:
@@ -72,7 +76,7 @@ def send_comment_for_ad_to_telegram(ad):
     )
 
 
-def edit_ad_in_telegram(ad, status):
+def edit_ad_in_telegram(ad: Ad, status: str) -> None:
     telegram_channel_message_id = ad.telegram_channel_message_id
 
     if not telegram_channel_message_id:
@@ -85,7 +89,7 @@ def edit_ad_in_telegram(ad, status):
         antiflood(bot.edit_message_text, text=caption, **kw)
 
 
-def send_ad_to_telegram(ad):
+def send_ad_to_telegram(ad: Ad) -> None:
     media = [InputMediaPhoto(media=get_map_image(ad), caption=make_caption(ad), parse_mode='HTML')]
     for photo in ad.photos:
         media.append(InputMediaPhoto(media=photo))
@@ -94,7 +98,7 @@ def send_ad_to_telegram(ad):
 
 @bot.message_handler(content_types=['photo'])
 @bot.message_handler(func=lambda message: True)
-def get_telegram_message_id(message):
+def get_telegram_message_id(message: telebot.types.Message) -> None:
     telegram_chat_message_id = message.message_id
     if message.forward_from_chat and message.forward_from_chat.id == int(channel_id):
         telegram_channel_message_id = message.forward_from_message_id
@@ -120,7 +124,7 @@ def get_telegram_message_id(message):
         db.flats.find_one_and_replace({'_id': ad['_id']}, ad)
 
 
-def telegram_notify(ad):
+def telegram_notify(ad: Ad) -> None:
     if ad.removed:
         edit_ad_in_telegram(ad, 'remove')
     elif ad.last_seen == ad.created:

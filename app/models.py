@@ -5,6 +5,7 @@ import logging
 
 
 class DataAd(BaseModel):
+    # region: str
     district: str
     area: str
     creation_date: datetime

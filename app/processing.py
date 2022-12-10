@@ -10,6 +10,7 @@ from app.mongo import db
 
 def create_dataad_from_data(data: dict) -> DataAd:
     return DataAd(
+        region=data.get('loc2'),
         district=data.get('loc3'),
         area=data.get('loc5'),
         creation_date=datetime.strptime(data.get('Ad Date'), '%d %B %Y'),
