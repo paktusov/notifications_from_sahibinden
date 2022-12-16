@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel, Field, root_validator
-from typing import Any, Optional
-import logging
 
 
 class DataAd(BaseModel):
@@ -30,11 +30,11 @@ class Price(BaseModel):
 
 
 class Ad(BaseModel):
-    id: str = Field(alias='_id')
+    id: str = Field(alias="_id")
     created: datetime
     last_update: datetime
     last_seen: datetime
-    thumbnail_url: str = Field(alias='thumbnailUrl', default='')
+    thumbnail_url: str = Field(alias="thumbnailUrl", default="")
     history_price: list[Price] = Field(default_factory=list)
     telegram_channel_message_id: Optional[str]
     telegram_chat_message_id: Optional[str]
@@ -48,7 +48,6 @@ class Ad(BaseModel):
     data: Optional[DataAd]
     photos: Optional[list[str]]
     map_image: Optional[str]
-
 
     @property
     def last_price(self):
@@ -64,30 +63,27 @@ class Ad(BaseModel):
 
     @property
     def full_url(self):
-        return f'https://sahibinden.com{self.url}'
+        return f"https://sahibinden.com{self.url}"
 
     @property
     def short_url(self):
-        return f'https://www.sahibinden.com/{self.id}'
-
+        return f"https://www.sahibinden.com/{self.id}"
 
     @root_validator(pre=True)
     def init_ad(cls, values):
         now = datetime.now()
-        values['last_update'] = values.get('last_update', now)
-        values['last_seen'] = now
-        values['created'] = values.get('created', now)
-        values['url'] = values.get('url').replace('detay', 'detail').replace('ilan', 'listing')
-        if not values.get('history_price'):
-            values['history_price'] = [Price(price=values['price'], updated=now)]
+        values["last_update"] = values.get("last_update", now)
+        values["last_seen"] = now
+        values["created"] = values.get("created", now)
+        values["url"] = values.get("url").replace("detay", "detail").replace("ilan", "listing")
+        if not values.get("history_price"):
+            values["history_price"] = [Price(price=values["price"], updated=now)]
         # values['history_price'] = values.get('history_price', [Price(price=values['price'], updated=now)])
-        if values.get('id'):
-            values['_id'] = values.pop('id')
-        return dict(
-            **values
-        )
+        if values.get("id"):
+            values["_id"] = values.pop("id")
+        return dict(**values)
 
-    def update_from_existed(self, existed: 'Ad'):
+    def update_from_existed(self, existed: "Ad"):
         self.telegram_channel_message_id = existed.telegram_channel_message_id
         self.telegram_chat_message_id = existed.telegram_chat_message_id
         self.created = existed.created

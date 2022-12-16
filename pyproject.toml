@@ -17,9 +17,58 @@ celery = {extras = ["redis"], version = "^5.2.7"}
 ratelimit = "^2.2.1"
 pyquery = "^1.4.3"
 ipython = "^8.7.0"
+pylint = "^2.15.8"
+isort = "^5.11.2"
+black = "^22.12.0"
 
 [tool.poetry.dev-dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pylint.master]
+extension-pkg-allow-list = ["pydantic"]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.basic]
+good-names = ["db"]
+
+[tool.pylint."MESSAGES CONTROL"]
+disable = [
+  "C0114",  # missing-module-docstring
+  "C0116",  # missing-function-docstring
+  "R0903",  # too-few-public-methods (for sqlalchemy tables and pydantic classes)
+  "C0115",  # missing-class-docstring (for api routes)
+  "C0103",  # invalid-name (for api routes)
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+known_local_folder = "app"
+lines_after_imports = 2
+multi_line_output = 3
+line_length = 120
+include_trailing_comma = true
