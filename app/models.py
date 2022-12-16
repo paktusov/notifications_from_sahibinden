@@ -16,7 +16,7 @@ class DataAd(BaseModel):
     floor: str
     building_floor_count: int
     heating_type: str
-    bathroom_count: int
+    bathroom_count: str
     balcony: bool
     furniture: bool
     using_status: str

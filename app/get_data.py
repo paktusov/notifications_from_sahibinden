@@ -16,7 +16,7 @@ from config import mapbox_config
 SAHIBINDEN_HOST = "https://www.sahibinden.com/ajax/mapSearch/classified/markers"
 SAHIBINDEN_DEFAULT_PARAMS = {
     # (1day, 7days, 15days, 30days)
-    "date": "7days",
+    "date": "30days",
     "address_country": "1",
     "m:includeProjectSummaryFields": "true",
     "language": "en",
@@ -29,64 +29,59 @@ SAHIBINDEN_DEFAULT_PARAMS = {
     "price_max": "12000",
 }
 COOKIES = {
-    'vid': '831',
-    'cdid': 'c50vCHNBN4SzpfX76373e4b9',
-    '__ssid': '67ba7120581250b01a5b8d35baab3aa',
-    '_gcl_au': '1.1.2131970503.1668539580',
-    'OptanonAlertBoxClosed': '2022-11-15T19:14:44.197Z',
-    'nwsh': 'std',
-    'showPremiumBanner': 'false',
-    'h28s1ZLRQ2': 'A9qeoIuEAQAAe_MKN-xHelX9Gcla-syrJUHTFiBKrXp9QQk65Kn-TPNiF-w_AVjoqhuucmW8wH8AADQwAAAAAA|1|0|bb001baedb500404d6d7059146f9dabfa9bd1f93',
-    'MS1': 'https://www.sahibinden.com/ilan/emlak-konut-kiralik-tomas-gayrimenkul-2-plus1-esyali-kiralik-1058997090/detay',
-    'userLastSearchSplashClosed': 'true',
-    'acc_type': 'bireysel_uye',
-    'kno': 'au-2PSNL-RyqxdkRgiodXVQ',
-    'rememberedUserName': 'apaktusov',
-    'st': 'adc4f2d91e1d146558730dd5f2d18c7e18b71d743c3d068a5627d3d99881f330f1bb256066b283d3b4d0ed782e18c9bbf4c5e3c28468f14eb',
-    'segIds': '',
-    '_gid': 'GA1.2.938412405.1671134094',
-    '_openContent': 'price%2Ca24%2Ca20',
-    'geoipCity': 'antalya',
-    'geoipIsp': 'turk_telekom',
-    'dp': '1920*1080-landscape',
-    'searchType': 'MAP/NAVIGATE/MAP',
-    '_dc_gtm_UA-235070-1': '1',
-    '_gali': 'searchResultLeft-mapCTA',
-    'csid': 'Y6NutT8QbZfEKctRGNJEMMlEUFbbNj9ijUmwhW6TaJ0fWPivhzFu4c0JI4gA4UMlooD8b/86vTcgcLlpy5JZDaqB1RDOfQoyL9etKdVMctL7TBrMjoZrfmgZSmJ19uxFkCHeNVuplVE+HvqEibXG37TwyKFZ5u6EFX7jrIhJTkB9GXI+gk41ZSmEJWGrbLIh',
-    '_ga': 'GA1.1.1285305536.1668539579',
-    '_ga_CVPS3GXE1Z': 'GS1.1.1671200562.109.1.1671200746.42.0.0',
-    'OptanonConsent': 'isGpcEnabled=0&datestamp=Fri+Dec+16+2022+17%3A25%3A48+GMT%2B0300+(GMT%2B03%3A00)&version=6.22.0&isIABGlobal=false&hosts=&consentId=68c682a3-0720-439a-9df9-2cc4123e37f9&interactionCount=1&landingPath=NotLandingPage&groups=C0001%3A1%2CC0002%3A0%2CC0003%3A0%2CC0004%3A0&geolocation=%3B&AwaitingReconsent=false',
+    "vid": "831",
+    "cdid": "c50vCHNBN4SzpfX76373e4b9",
+    "__ssid": "67ba7120581250b01a5b8d35baab3aa",
+    "_gcl_au": "1.1.2131970503.1668539580",
+    "OptanonAlertBoxClosed": "2022-11-15T19:14:44.197Z",
+    "nwsh": "std",
+    "showPremiumBanner": "false",
+    "h28s1ZLRQ2": "A9qeoIuEAQAAe_MKN-xHelX9Gcla-syrJUHTFiBKrXp9QQk65Kn-TPNiF-w_AVjoqhuucmW8wH8AADQwAAAAAA|1|0|bb001baedb500404d6d7059146f9dabfa9bd1f93",
+    "MS1": "https://www.sahibinden.com/ilan/emlak-konut-kiralik-tomas-gayrimenkul-2-plus1-esyali-kiralik-1058997090/detay",
+    "userLastSearchSplashClosed": "true",
+    "acc_type": "bireysel_uye",
+    "kno": "au-2PSNL-RyqxdkRgiodXVQ",
+    "rememberedUserName": "apaktusov",
+    "st": "adc4f2d91e1d146558730dd5f2d18c7e18b71d743c3d068a5627d3d99881f330f1bb256066b283d3b4d0ed782e18c9bbf4c5e3c28468f14eb",
+    "segIds": "",
+    "_gid": "GA1.2.938412405.1671134094",
+    "_openContent": "price%2Ca24%2Ca20",
+    "geoipCity": "antalya",
+    "geoipIsp": "turk_telekom",
+    "dp": "1920*1080-landscape",
+    "searchType": "MAP/NAVIGATE/MAP",
+    "_dc_gtm_UA-235070-1": "1",
+    "_gali": "searchResultLeft-mapCTA",
+    "csid": "Y6NutT8QbZfEKctRGNJEMMlEUFbbNj9ijUmwhW6TaJ0fWPivhzFu4c0JI4gA4UMlooD8b/86vTcgcLlpy5JZDaqB1RDOfQoyL9etKdVMctL7TBrMjoZrfmgZSmJ19uxFkCHeNVuplVE+HvqEibXG37TwyKFZ5u6EFX7jrIhJTkB9GXI+gk41ZSmEJWGrbLIh",
+    "_ga": "GA1.1.1285305536.1668539579",
+    "_ga_CVPS3GXE1Z": "GS1.1.1671200562.109.1.1671200746.42.0.0",
+    "OptanonConsent": "isGpcEnabled=0&datestamp=Fri+Dec+16+2022+17%3A25%3A48+GMT%2B0300+(GMT%2B03%3A00)&version=6.22.0&isIABGlobal=false&hosts=&consentId=68c682a3-0720-439a-9df9-2cc4123e37f9&interactionCount=1&landingPath=NotLandingPage&groups=C0001%3A1%2CC0002%3A0%2CC0003%3A0%2CC0004%3A0&geolocation=%3B&AwaitingReconsent=false",
 }
 HEADERS = {
-    'authority': 'www.sahibinden.com',
-    'accept': 'application/json, text/javascript, */*; q=0.01',
-    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,tr;q=0.6',
-    'content-type': 'application/json; charset=utf-8',
-    'referer': 'https://www.sahibinden.com/search-map/en/for-rent-flat/antalya-muratpasa?a24_max=12000&autoViewport=3&price_max=12000',
-    'sec-ch-ua': '"Google Chrome";v="107", "Chromium";v="107", "Not=A?Brand";v="24"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Linux"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    'x-requested-with': 'XMLHttpRequest',
+    "authority": "www.sahibinden.com",
+    "accept": "application/json, text/javascript, */*; q=0.01",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,tr;q=0.6",
+    "content-type": "application/json; charset=utf-8",
+    "referer": "https://www.sahibinden.com/search-map/en/for-rent-flat/antalya-muratpasa?a24_max=12000&autoViewport=3&price_max=12000",
+    "sec-ch-ua": '"Google Chrome";v="107", "Chromium";v="107", "Not=A?Brand";v="24"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Linux"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+    "x-requested-with": "XMLHttpRequest",
 }
 
 
 def save_data(data: dict) -> None:
-    file_name = datetime.now().strftime("%y%m%d%H%M") + ".json"
+    file_name = f"{datetime.now():%y%m%d%H%M}.json"
     with open(file_name, "w") as file:
         json.dump(data, file)
 
 
 def get_data_with_selenium(**url_params: Any) -> list[dict]:
-    link = (
-        SAHIBINDEN_HOST
-        + "?"
-        + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params})
-        + "&m%3AincludeProjectSummaryFields=true"
-    )
+    link = SAHIBINDEN_HOST + "?" + urlencode({**SAHIBINDEN_DEFAULT_PARAMS, **url_params})
 
     options = webdriver.ChromeOptions()
     options.add_argument("start-maximized")

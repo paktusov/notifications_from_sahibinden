@@ -14,13 +14,17 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
+def format_price(price: float) -> str:
+    return f"{price:,.0f}".replace(",", " ")
+
+
 def make_caption(ad: Ad, status: str = "new") -> str:
-    first_price = f"{ad.first_price:,.0f}".replace(",", " ")
-    last_price = f"{ad.last_price:,.0f}".replace(",", " ")
+    first_price = format_price(ad.first_price)
+    last_price = format_price(ad.last_price)
     date = ad.last_price_update.strftime("%d.%m.%Y")
     hiperlink = f'<a href="{ad.short_url}">{ad.title}</a>\n'
     if status == "new":
-        price = f"{last_price} TL on {date}\n"
+        price = f"{last_price} TL\n"
     elif status == "update":
         price = f"<s>{first_price} TL</s> {last_price} TL on {date}\n"
     else:
@@ -40,23 +44,21 @@ def make_caption(ad: Ad, status: str = "new") -> str:
 
 
 def send_comment_for_ad_to_telegram(ad: Ad) -> None:
-    try:
-        telegram_post = TelegramIdAd(**db.telegram_posts.find_one({"_id": ad.id}))
-    except Exception as e:
-        logging.error(e)
+    telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
+    if not telegram_post_dict:
+        logging.error(f"Telegram post not found for ad {ad.id}")
         return
+    telegram_post = TelegramIdAd(**telegram_post_dict)
     telegram_chat_message_id = telegram_post.telegram_chat_message_id
-    format_new_price = f"{ad.last_price:,.0f}".replace(",", " ")
-    price_diff = ad.last_price - ad.history_price[-2].price
-    format_price_diff = f"{price_diff}".replace(",", " ")
+    new_price = format_price(ad.last_price)
+    price_diff = format_price(ad.last_price - ad.history_price[-2].price)
     icon = "📉 " if price_diff < 0 else "📈 +"
-    comment = f"{icon}{format_price_diff} TL = {format_new_price} TL"
-    format_comment = comment.format(icon, format_price_diff, format_new_price)
+    comment = f"{icon}{price_diff} TL = {new_price} TL"
     try:
         antiflood(
             bot.send_message,
             chat_id=chat_id,
-            text=format_comment,
+            text=comment,
             reply_to_message_id=telegram_chat_message_id,
             parse_mode="HTML",
         )
@@ -65,11 +67,11 @@ def send_comment_for_ad_to_telegram(ad: Ad) -> None:
 
 
 def edit_ad_in_telegram(ad: Ad, status: str) -> None:
-    try:
-        telegram_post = TelegramIdAd(**db.telegram_posts.find_one({"_id": ad.id}))
-    except Exception as e:
-        logging.error(e)
+    telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
+    if not telegram_post_dict:
+        logging.error(f"Telegram post not found for ad {ad.id}")
         return
+    telegram_post = TelegramIdAd(**telegram_post_dict)
     telegram_channel_message_id = telegram_post.telegram_channel_message_id
     caption = make_caption(ad, status)
     try:
@@ -97,7 +99,7 @@ def send_ad_to_telegram(ad: Ad) -> None:
 def telegram_notify(ad: Ad) -> None:
     if ad.removed:
         edit_ad_in_telegram(ad, "remove")
-    elif ad.last_seen == ad.created:
+    elif ad.last_seen == ad.created and (ad.created - ad.data.creation_date).days < 1:
         send_ad_to_telegram(ad)
     elif ad.last_seen == ad.last_update:
         send_comment_for_ad_to_telegram(ad)
