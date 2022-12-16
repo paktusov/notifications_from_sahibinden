@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from mongo import db, get_db
+from mongo import db
 from telegram.notification import telegram_notify
 
 from app.get_data import get_ad_photos, get_data_ad, get_data_with_cookies, get_map_image
@@ -36,7 +36,7 @@ def create_ad_from_data(data: list[dict]) -> list[Ad]:
 
 
 def processing_data():
-    flats = get_db().flats
+    flats = db.flats
     now_time = datetime.now()
 
     parsed_ads = create_ad_from_data(get_data_with_cookies())
@@ -52,7 +52,7 @@ def processing_data():
             ad.data = create_dataad_from_data(get_data_ad(ad.full_url))
             ad.photos = get_ad_photos(ad.full_url)
             ad.map_image = get_map_image(ad.lat, ad.lon)
-        db.flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
+        flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
         # logging.info(f'Ad {ad.id} saved')
         telegram_notify(ad)
 
@@ -60,5 +60,5 @@ def processing_data():
 
     for ad in missed_ad:
         ad.remove()
-        db.flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
+        flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
         telegram_notify(ad)

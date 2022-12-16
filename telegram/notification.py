@@ -1,9 +1,17 @@
+import logging
+
 from telebot.types import InputMediaPhoto
 from telebot.util import antiflood
 
+from mongo import db
 from telegram.bot import bot, channel_id, chat_id
+from telegram.models import TelegramIdAd
 
 from app.models import Ad
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 def make_caption(ad: Ad, status: str = "new") -> str:
@@ -32,43 +40,58 @@ def make_caption(ad: Ad, status: str = "new") -> str:
 
 
 def send_comment_for_ad_to_telegram(ad: Ad) -> None:
-    telegram_chat_message_id = ad.telegram_chat_message_id
-
-    if not telegram_chat_message_id:
+    try:
+        telegram_post = TelegramIdAd(**db.telegram_posts.find_one({"_id": ad.id}))
+    except Exception as e:
+        logging.error(e)
         return
+    telegram_chat_message_id = telegram_post.telegram_chat_message_id
     format_new_price = f"{ad.last_price:,.0f}".replace(",", " ")
     price_diff = ad.last_price - ad.history_price[-2].price
     format_price_diff = f"{price_diff}".replace(",", " ")
     icon = "📉 " if price_diff < 0 else "📈 +"
     comment = f"{icon}{format_price_diff} TL = {format_new_price} TL"
     format_comment = comment.format(icon, format_price_diff, format_new_price)
-    antiflood(
-        bot.send_message,
-        chat_id=chat_id,
-        text=format_comment,
-        reply_to_message_id=telegram_chat_message_id,
-        parse_mode="HTML",
-    )
+    try:
+        antiflood(
+            bot.send_message,
+            chat_id=chat_id,
+            text=format_comment,
+            reply_to_message_id=telegram_chat_message_id,
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        logging.error(e)
 
 
 def edit_ad_in_telegram(ad: Ad, status: str) -> None:
-    telegram_channel_message_id = ad.telegram_channel_message_id
-
-    if not telegram_channel_message_id:
+    try:
+        telegram_post = TelegramIdAd(**db.telegram_posts.find_one({"_id": ad.id}))
+    except Exception as e:
+        logging.error(e)
         return
+    telegram_channel_message_id = telegram_post.telegram_channel_message_id
     caption = make_caption(ad, status)
-    kw = dict(chat_id=channel_id, message_id=telegram_channel_message_id, parse_mode="HTML")
-    if ad.thumbnail_url:
-        antiflood(bot.edit_message_caption, caption=caption, **kw)
-    else:
-        antiflood(bot.edit_message_text, text=caption, **kw)
+    try:
+        antiflood(
+            bot.edit_message_caption,
+            chat_id=channel_id,
+            message_id=telegram_channel_message_id,
+            parse_mode="HTML",
+            caption=caption,
+        )
+    except Exception as e:
+        logging.error(e)
 
 
 def send_ad_to_telegram(ad: Ad) -> None:
     media = [InputMediaPhoto(media=ad.map_image, caption=make_caption(ad), parse_mode="HTML")]
     for photo in ad.photos:
         media.append(InputMediaPhoto(media=photo))
-    antiflood(bot.send_media_group, chat_id=channel_id, media=media)
+    try:
+        antiflood(bot.send_media_group, chat_id=channel_id, media=media)
+    except Exception as e:
+        logging.error(e)
 
 
 def telegram_notify(ad: Ad) -> None:

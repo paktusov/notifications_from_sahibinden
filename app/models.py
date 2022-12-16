@@ -75,7 +75,7 @@ class Ad(BaseModel):
         values["last_update"] = values.get("last_update", now)
         values["last_seen"] = now
         values["created"] = values.get("created", now)
-        values["url"] = values.get("url").replace("detay", "detail").replace("ilan", "listing")
+        # values["url"] = values.get("url").replace("/detay", "/detail").replace("/ilan", "/listing")
         if not values.get("history_price"):
             values["history_price"] = [Price(price=values["price"], updated=now)]
         # values['history_price'] = values.get('history_price', [Price(price=values['price'], updated=now)])

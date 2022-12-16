@@ -12,6 +12,7 @@ app.conf.update(
     broker_pool_limit=celery_config.broker_pool_limit,
     timezone=celery_config.timezone,
 )
+
 app.conf.beat_schedule = {
     "add-every-1-minutes": {
         "task": "app.tasks.start_processing",

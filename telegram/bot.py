@@ -31,8 +31,6 @@ def get_telegram_message_id(message: telebot.types.Message) -> None:
                 url = message.json["entities"][0]["url"]
         except Exception as e:
             logging.error(e)
-            url = None
-        if not url:
             return
         id = url.replace("https://www.sahibinden.com/", "")
 
@@ -42,11 +40,3 @@ def get_telegram_message_id(message: telebot.types.Message) -> None:
             _id=id,
         )
         db.telegram_posts.find_one_and_replace({"_id": id}, post.dict(by_alias=True), upsert=True)
-
-        ad = db.flats.find_one({"_id": id})
-        if not ad:
-            logging.info("Ad not found")
-            return
-        ad["telegram_channel_message_id"] = telegram_channel_message_id
-        ad["telegram_chat_message_id"] = telegram_chat_message_id
-        db.flats.find_one_and_replace({"_id": ad["_id"]}, ad)
