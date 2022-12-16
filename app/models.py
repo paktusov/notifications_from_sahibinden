@@ -47,6 +47,7 @@ class Ad(BaseModel):
     url: Optional[str]
     data: Optional[DataAd]
     photos: Optional[list[str]]
+    map_image: Optional[str]
 
 
     @property

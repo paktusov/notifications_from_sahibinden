@@ -1,11 +1,10 @@
 from datetime import datetime
-import logging
 
-from app.get_data import get_data_ad, get_data_with_cookies, get_ad_photos
-from app.mongo import get_db
+from app.get_data import get_data_ad, get_data_with_cookies, get_ad_photos, get_map_image
+from mongo import get_db
 from app.models import Ad, DataAd
-from bot.__main__ import telegram_notify
-from app.mongo import db
+from telegram.notification import telegram_notify
+from mongo import db
 
 
 def create_dataad_from_data(data: dict) -> DataAd:
@@ -31,7 +30,6 @@ def create_dataad_from_data(data: dict) -> DataAd:
 
 
 def create_ad_from_data(data: list[dict]) -> list[Ad]:
-    # Remove logics from Ad.root_validator
     return [
         Ad(**row)
         for row in data['classifiedMarkers']
@@ -58,6 +56,7 @@ def processing_data():
         else:
             ad.data = create_dataad_from_data(get_data_ad(ad.full_url))
             ad.photos = get_ad_photos(ad.full_url)
+            ad.map_image = get_map_image(ad.lat, ad.lon)
         db.flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
         # logging.info(f'Ad {ad.id} saved')
         telegram_notify(ad)

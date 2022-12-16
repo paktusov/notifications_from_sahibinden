@@ -77,7 +77,7 @@ HEADERS = {
     'sec-fetch-site': 'none',
     'sec-fetch-user': '?1',
     'upgrade-insecure-requests': '1',
-    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
+    'user-agent': 'Mozilla/5.0 (X11; Linad.ux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
 }
 
 
@@ -156,8 +156,8 @@ def get_data_ad(url: str) -> dict:
     return data
 
 
-def get_map_image(ad):
-    if not ad.lat or not ad.lon:
+def get_map_image(lat: str, lon: str) -> [str, None]:
+    if not lat or not lon:
         return None
-    url = f"{mapbox_config.url}/pin-l+0031f5({ad.lon},{ad.lat})/{ad.lon},{ad.lat},12/1200x600?access_token={mapbox_config.token}"
+    url = f"{mapbox_config.url}/pin-l+0031f5({lon},{lat})/{lon},{lat},12/1200x600?access_token={mapbox_config.token}"
     return url
