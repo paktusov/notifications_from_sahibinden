@@ -43,7 +43,7 @@ def processing_data():
     now_time = datetime.now()
     data = get_data_with_cookies()
     if not data:
-        logger.error("Can't parse ads from sahibinden.com")
+        logger.warning("Can't parse ads from sahibinden.com")
         return
     parsed_ads = create_ad_from_data(data)
 
@@ -56,10 +56,10 @@ def processing_data():
             ad.update_from_existed(existed_ads[ad.id])
         else:
             dataad = get_data_ad(ad.full_url)
-            if not dataad:
+            if dataad:
+                ad.data = create_dataad_from_data(dataad)
+            else:
                 logger.error("Can't parse ad data from %s", ad.id)
-                continue
-            ad.data = create_dataad_from_data(dataad)
 
             photos = get_ad_photos(ad.full_url)
             if not photos:

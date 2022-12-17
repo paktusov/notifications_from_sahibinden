@@ -33,7 +33,7 @@ def make_caption(ad: Ad, status: str = "new") -> str:
     if not ad.data:
         caption = hiperlink + price
         return caption
-    location = f"{ad.data.district} / {ad.data.area}\n"
+    location = f"{ad.data.district} / #{ad.data.area}\n"
     rooms = f"{ad.data.room_count}\n"
     area = f"{ad.data.net_area} ({ad.data.gross_area}) m²\n"
     floor = f"{ad.data.floor}/{ad.data.building_floor_count} floor\n"
@@ -101,7 +101,7 @@ def send_ad_to_telegram(ad: Ad) -> None:
 def telegram_notify(ad: Ad) -> None:
     if ad.removed:
         edit_ad_in_telegram(ad, "remove")
-    elif ad.last_seen == ad.created and (ad.created - ad.data.creation_date).days < 1:
+    elif ad.last_seen == ad.created and ad.data and (ad.created - ad.data.creation_date).days < 1:
         send_ad_to_telegram(ad)
     elif ad.last_seen == ad.last_update:
         send_comment_for_ad_to_telegram(ad)

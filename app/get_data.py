@@ -15,7 +15,7 @@ from config import mapbox_config
 SAHIBINDEN_HOST = "https://www.sahibinden.com/ajax/mapSearch/classified/markers"
 SAHIBINDEN_DEFAULT_PARAMS = {
     # (1day, 7days, 15days, 30days)
-    "date": "15days",
+    "date": "30days",
     "address_country": "1",
     "m:includeProjectSummaryFields": "true",
     "language": "en",
@@ -25,7 +25,7 @@ SAHIBINDEN_DEFAULT_PARAMS = {
     "price_currency": "1",
     "address_city": "7",
     "pagingOffset": "0",
-    "price_max": "12000",
+    "price_max": "30000",
 }
 COOKIES = {
     "vid": "831",
