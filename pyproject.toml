@@ -38,11 +38,13 @@ good-names = ["db"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
-  "C0114",  # missing-module-docstring
-  "C0116",  # missing-function-docstring
-  "R0903",  # too-few-public-methods (for sqlalchemy tables and pydantic classes)
-  "C0115",  # missing-class-docstring (for api routes)
   "C0103",  # invalid-name (for api routes)
+  "C0114",  # missing-module-docstring
+  "C0115",  # missing-class-docstring (for api routes)
+  "C0116",  # missing-function-docstring
+  "E0213", # no-self-argument (for pydantic classes)
+  "R0902", # too-many-instance-attributes (for pydantic classes)
+  "R0903",  # too-few-public-methods (for sqlalchemy tables and pydantic classes)
 ]
 
 [tool.black]

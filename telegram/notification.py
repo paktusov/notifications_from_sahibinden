@@ -2,6 +2,7 @@ import logging
 
 from telebot.types import InputMediaPhoto
 from telebot.util import antiflood
+from telebot.apihelper import ApiTelegramException
 
 from mongo import db
 from telegram.bot import bot, channel_id, chat_id
@@ -46,14 +47,15 @@ def make_caption(ad: Ad, status: str = "new") -> str:
 def send_comment_for_ad_to_telegram(ad: Ad) -> None:
     telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
     if not telegram_post_dict:
-        logging.error(f"Telegram post not found for ad {ad.id}")
+        logging.error("Telegram post not found for ad %s", ad.id)
         return
     telegram_post = TelegramIdAd(**telegram_post_dict)
     telegram_chat_message_id = telegram_post.telegram_chat_message_id
     new_price = format_price(ad.last_price)
-    price_diff = format_price(ad.last_price - ad.history_price[-2].price)
+    price_diff = ad.last_price - ad.history_price[-2].price
+    formatted_price_diff = format_price(ad.last_price - ad.history_price[-2].price)
     icon = "📉 " if price_diff < 0 else "📈 +"
-    comment = f"{icon}{price_diff} TL = {new_price} TL"
+    comment = f"{icon}{formatted_price_diff} TL = {new_price} TL"
     try:
         antiflood(
             bot.send_message,
@@ -62,14 +64,14 @@ def send_comment_for_ad_to_telegram(ad: Ad) -> None:
             reply_to_message_id=telegram_chat_message_id,
             parse_mode="HTML",
         )
-    except Exception as e:
+    except ApiTelegramException as e:
         logging.error(e)
 
 
 def edit_ad_in_telegram(ad: Ad, status: str) -> None:
     telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
     if not telegram_post_dict:
-        logging.error(f"Telegram post not found for ad {ad.id}")
+        logging.error("Telegram post not found for ad %s", ad.id)
         return
     telegram_post = TelegramIdAd(**telegram_post_dict)
     telegram_channel_message_id = telegram_post.telegram_channel_message_id
@@ -82,7 +84,7 @@ def edit_ad_in_telegram(ad: Ad, status: str) -> None:
             parse_mode="HTML",
             caption=caption,
         )
-    except Exception as e:
+    except ApiTelegramException as e:
         logging.error(e)
 
 
@@ -92,7 +94,7 @@ def send_ad_to_telegram(ad: Ad) -> None:
         media.append(InputMediaPhoto(media=photo))
     try:
         antiflood(bot.send_media_group, chat_id=channel_id, media=media)
-    except Exception as e:
+    except ApiTelegramException as e:
         logging.error(e)
 
 

@@ -29,14 +29,14 @@ def get_telegram_message_id(message: telebot.types.Message) -> None:
                 url = message.json["caption_entities"][0]["url"]
             else:
                 url = message.json["entities"][0]["url"]
-        except Exception as e:
+        except KeyError as e:
             logging.error(e)
             return
-        id = url.replace("https://www.sahibinden.com/", "")
+        ad_id = url.replace("https://www.sahibinden.com/", "")
 
         post = TelegramIdAd(
             telegram_chat_message_id=telegram_chat_message_id,
             telegram_channel_message_id=telegram_channel_message_id,
-            _id=id,
+            _id=ad_id,
         )
-        db.telegram_posts.find_one_and_replace({"_id": id}, post.dict(by_alias=True), upsert=True)
+        db.telegram_posts.find_one_and_replace({"_id": ad_id}, post.dict(by_alias=True), upsert=True)
