@@ -26,7 +26,7 @@ SAHIBINDEN_DEFAULT_PARAMS = {
     "price_currency": "1",
     "address_city": "7",
     "pagingOffset": "0",
-    "price_max": "30000",
+    "price_max": "25000",
 }
 COOKIES = {
     "vid": "831",
@@ -138,7 +138,7 @@ def get_data_and_photos_ad(url: str) -> (dict | None, list[str] | None):
         timeout=10,
     )
     if response.status_code != 200:
-        return None
+        return None, None
 
     html = PyQuery(response.text)
     customdata = json.loads(html("#gaPageViewTrackingJson").attr("data-json"))
