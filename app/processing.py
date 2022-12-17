@@ -4,7 +4,7 @@ from datetime import datetime
 from mongo import db
 from telegram.notification import telegram_notify
 
-from app.get_data import get_ad_photos, get_data_ad, get_data_with_cookies, get_map_image
+from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image
 from app.models import Ad, DataAd
 
 
@@ -38,7 +38,7 @@ def create_ad_from_data(data: list[dict]) -> list[Ad]:
     return [Ad(**row) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
 
 
-def processing_data():
+def processing_data() -> None:
     flats = db.flats
     now_time = datetime.now()
     data = get_data_with_cookies()
@@ -55,13 +55,11 @@ def processing_data():
         if ad.id in existed_ads:
             ad.update_from_existed(existed_ads[ad.id])
         else:
-            dataad = get_data_ad(ad.full_url)
+            dataad, photos = get_data_and_photos_ad(ad.full_url)
             if dataad:
                 ad.data = create_dataad_from_data(dataad)
             else:
                 logger.error("Can't parse ad data from %s", ad.id)
-
-            photos = get_ad_photos(ad.full_url)
             if not photos:
                 logger.error("Can't parse ad photos from %s", ad.id)
             ad.photos = photos
