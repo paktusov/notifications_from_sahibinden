@@ -15,17 +15,18 @@ from config import mapbox_config
 
 SAHIBINDEN_HOST = "https://www.sahibinden.com/ajax/mapSearch/classified/markers"
 SAHIBINDEN_DEFAULT_PARAMS = {
-    # (1day, 7days, 15days, 30days)
-    "date": "30days",
     "address_country": "1",
     "m:includeProjectSummaryFields": "true",
     "language": "en",
     "category": "16624",
-    # 83 - Muratpasha, 85 - Konyaalti
-    "address_town": "83",
     "price_currency": "1",
     "address_city": "7",
     "pagingOffset": "0",
+
+}
+VARIABLE_PARAMS = {
+    # (1day, 7days, 15days, 30days)
+    "date": "30days",
     "price_max": "25000",
 }
 COOKIES = {
@@ -116,10 +117,10 @@ def get_data_with_selenium(**url_params: Any) -> list[dict]:
     return data["classifiedMarkers"]
 
 
-def get_data_with_cookies() -> list[dict] | None:
+def get_data_with_cookies(city_params: dict) -> list[dict] | None:
     response = requests.get(
         url=SAHIBINDEN_HOST,
-        params=SAHIBINDEN_DEFAULT_PARAMS,
+        params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | city_params,
         cookies=COOKIES,
         headers=HEADERS,
         timeout=10,

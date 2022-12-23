@@ -5,6 +5,7 @@ from telebot.types import InputMediaPhoto
 from telebot.util import antiflood
 
 from mongo import db
+from config import CLOSED_AREAS
 from telegram.bot import bot, channel_id, chat_id
 from telegram.models import TelegramIdAd
 
@@ -33,7 +34,9 @@ def make_caption(ad: Ad, status: str = "new") -> str:
     if not ad.data:
         caption = hiperlink + price
         return caption
-    location = f"{ad.data.district} / #{ad.data.area}\n"
+    if ad.data.area in CLOSED_AREAS:
+        ad.data.area += "⛔️"
+    location = f"#{ad.data.district} / #{ad.data.area}\n"
     rooms = f"{ad.data.room_count}\n"
     area = f"{ad.data.net_area} ({ad.data.gross_area}) m²\n"
     floor = f"{ad.data.floor}/{ad.data.building_floor_count} floor\n"

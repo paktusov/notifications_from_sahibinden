@@ -9,8 +9,8 @@ class DataAd(BaseModel):
     district: str
     area: str
     creation_date: datetime
-    gross_area: int
-    net_area: int
+    gross_area: str
+    net_area: str
     room_count: str
     building_age: str
     floor: str
