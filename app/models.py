@@ -4,6 +4,17 @@ from typing import Optional
 from pydantic import BaseModel, Field, root_validator
 
 
+class CloseArea(BaseModel):
+    id: str = Field(alias="_id")
+    name: str
+
+
+class City(BaseModel):
+    id: str = Field(alias="_id")
+    name: str
+    last_parsing: datetime
+
+
 class DataAd(BaseModel):
     # region: str
     district: str

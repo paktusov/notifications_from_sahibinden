@@ -1,9 +1,17 @@
+import logging
+from datetime import datetime
+
 from celery import Celery
 from celery.schedules import crontab
 
-from config import celery_config, cities_config
+from config import celery_config
+from mongo import db
 
 from app.processing import processing_data
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 app = Celery("tasks", broker=celery_config.broker)
@@ -13,17 +21,18 @@ app.conf.update(
     timezone=celery_config.timezone,
 )
 
-for i, city_config in enumerate(cities_config):
-    city, config = city_config
-    time = ','.join([str(j) for j in range(i * 2, 60, 6)])
-    app.conf.beat_schedule[f"parsing_{city}"] = {
-            "task": "app.tasks.start_processing",
-            "schedule": crontab(minute=time),
-            "args": (config,),
+app.conf.beat_schedule = {
+    "Parsing Sahibinden": {
+        "task": "app.tasks.start_processing",
+        "schedule": crontab(minute="*/3"),
     }
+}
 
 
 @app.task
-def start_processing(parameter: str) -> None:
-    city_parameter = dict(address_town=parameter)
+def start_processing() -> None:
+    city = db.cities.find().sort("last_parsing")[0]
+    logging.info(f"Start parsing {city['name']}")
+    city_parameter = dict(address_town=city["_id"])
     processing_data(city_parameter)
+    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})

@@ -5,7 +5,6 @@ from telebot.types import InputMediaPhoto
 from telebot.util import antiflood
 
 from mongo import db
-from config import CLOSED_AREAS
 from telegram.bot import bot, channel_id, chat_id
 from telegram.models import TelegramIdAd
 
@@ -14,6 +13,8 @@ from app.models import Ad
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
+closed_ares = {area["name"]: area for area in db.closed_areas.find({})}
 
 
 def format_price(price: float) -> str:
@@ -34,7 +35,7 @@ def make_caption(ad: Ad, status: str = "new") -> str:
     if not ad.data:
         caption = hiperlink + price
         return caption
-    if ad.data.area in CLOSED_AREAS:
+    if ad.data.area in closed_ares:
         ad.data.area += "⛔️"
     location = f"#{ad.data.district} / #{ad.data.area}\n"
     rooms = f"{ad.data.room_count}\n"

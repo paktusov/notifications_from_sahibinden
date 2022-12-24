@@ -6,13 +6,6 @@ from typing import Optional, List
 
 load_dotenv()
 
-CLOSED_AREAS: list[str] = [
-    "Hurma Mah.",
-    "Sarısu Mh.",
-    "Liman Mah.",
-    "Topçular Mh.",
-]
-
 
 class TelegramSettings(BaseSettings):
     token_antalya_bot: str
