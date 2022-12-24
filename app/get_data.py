@@ -133,6 +133,26 @@ def get_data_with_cookies(city_params: dict) -> list[dict] | None:
     return data["classifiedMarkers"]
 
 
+def get_areas(city_code: str) -> list[dict] | None:
+    response = requests.get(
+        url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_AREAS_SUFFIX,
+        params={"townId": city_code},
+        cookies=COOKIES,
+        headers=HEADERS,
+        timeout=10,
+    )
+    print(response.status_code)
+    if response.status_code != 200:
+        return None
+    areas = []
+    for neighbourhood in response.json():
+        for area in neighbourhood["quarters"]:
+            if type(area) != dict:
+                continue
+            areas.append(area)
+    return areas
+
+
 def get_data_and_photos_ad(url: str) -> (dict | None, list[str] | None):
     response = requests.get(
         url=url,

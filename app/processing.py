@@ -4,12 +4,14 @@ from datetime import datetime
 from mongo import db
 from telegram.notification import telegram_notify
 
-from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image
-from app.models import Ad, DataAd
+from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image, get_areas
+from app.models import Ad, DataAd, Area
 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
+
 
 
 def create_dataad_from_data(data: dict) -> DataAd:
