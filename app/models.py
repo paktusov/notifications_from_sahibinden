@@ -4,9 +4,17 @@ from typing import Optional
 from pydantic import BaseModel, Field, root_validator
 
 
-class CloseArea(BaseModel):
+class Area(BaseModel):
     id: str = Field(alias="_id")
     name: str
+    is_closed: bool = False
+    city_id: str
+
+    @root_validator(pre=True)
+    def init_area(cls, values):
+        if values.get("id"):
+            values["_id"] = values.pop("id")
+        return dict(**values)
 
 
 class City(BaseModel):

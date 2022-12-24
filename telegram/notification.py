@@ -14,7 +14,7 @@ from app.models import Ad
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
-closed_ares = {area["name"]: area for area in db.closed_areas.find({})}
+closed_ares = [area["name"] for area in db.areas.find({"is_closed": True})]
 
 
 def format_price(price: float) -> str:
