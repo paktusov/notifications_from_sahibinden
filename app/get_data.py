@@ -13,7 +13,9 @@ from selenium import webdriver
 from config import mapbox_config
 
 
-SAHIBINDEN_HOST = "https://www.sahibinden.com/ajax/mapSearch/classified/markers"
+SAHIBINDEN_HOST = "https://www.sahibinden.com"
+SAHIBINDEN_HOST_ADS_SUFFIX = "/ajax/mapSearch/classified/markers"
+SAHIBINDEN_HOST_AREAS_SUFFIX = "/ajax/location/getDistricts"
 SAHIBINDEN_DEFAULT_PARAMS = {
     "address_country": "1",
     "m:includeProjectSummaryFields": "true",
@@ -119,7 +121,7 @@ def get_data_with_selenium(**url_params: Any) -> list[dict]:
 
 def get_data_with_cookies(city_params: dict) -> list[dict] | None:
     response = requests.get(
-        url=SAHIBINDEN_HOST,
+        url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_ADS_SUFFIX,
         params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | city_params,
         cookies=COOKIES,
         headers=HEADERS,
