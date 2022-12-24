@@ -6,7 +6,7 @@ from telebot.util import antiflood
 
 from mongo import db
 from config import CLOSED_AREAS
-from telegram.bot import bot, channel_id, chat_id
+from telegram.bot import bot, channel_id, chat_id, subscribers
 from telegram.models import TelegramIdAd
 
 from app.models import Ad
@@ -97,6 +97,10 @@ def send_ad_to_telegram(ad: Ad) -> None:
         media.append(InputMediaPhoto(media=photo))
     try:
         antiflood(bot.send_media_group, chat_id=channel_id, media=media)
+        for subscriber in db.subscribers.find():
+            logging.info(f"Send message to {subscriber['_id']}")
+            if ad.last_price <= subscriber["max_price"]:
+                antiflood(bot.send_media_group, chat_id=subscriber['_id'], media=media)
     except ApiTelegramException as e:
         logging.error(e)
 
