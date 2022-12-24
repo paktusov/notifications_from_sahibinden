@@ -18,8 +18,8 @@ def create_dataad_from_data(data: dict) -> DataAd:
         district=data.get("loc3"),
         area=data.get("loc5"),
         creation_date=datetime.strptime(data.get("Ad Date"), "%d %B %Y"),
-        gross_area=int(data.get("m² (Brüt)")),
-        net_area=int(data.get("m² (Net)")),
+        gross_area=data.get("m² (Brüt)"),
+        net_area=data.get("m² (Net)"),
         room_count=data.get("Oda Sayısı"),
         building_age=data.get("Bina Yaşı"),
         floor=data.get("Bulunduğu Kat"),
@@ -38,10 +38,10 @@ def create_ad_from_data(data: list[dict]) -> list[Ad]:
     return [Ad(**row) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
 
 
-def processing_data() -> None:
+def processing_data(city_parameter: dict) -> None:
     flats = db.flats
     now_time = datetime.now()
-    data = get_data_with_cookies()
+    data = get_data_with_cookies(city_parameter)
     if not data:
         logger.warning("Can't parse ads from sahibinden.com")
         return

@@ -2,9 +2,10 @@ import os
 
 from dotenv import load_dotenv
 from pydantic import BaseSettings
-from typing import Optional
+from typing import Optional, List
 
 load_dotenv()
+
 
 class TelegramSettings(BaseSettings):
     token_antalya_bot: str
@@ -45,7 +46,14 @@ class MapboxSettings(BaseSettings):
         env_prefix = 'mapbox_'
 
 
+class CitiesSettings(BaseSettings):
+    muratpasha: str = "83"
+    kepez: str = "84"
+    konyaalti: str = "85"
+
+
 telegram_config = TelegramSettings()
 mongo_config = MongoDBSettings()
 celery_config = CelerySettings()
 mapbox_config = MapboxSettings()
+cities_config = CitiesSettings()

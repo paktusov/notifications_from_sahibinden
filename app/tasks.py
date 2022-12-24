@@ -1,9 +1,17 @@
+import logging
+from datetime import datetime
+
 from celery import Celery
 from celery.schedules import crontab
 
 from config import celery_config
+from mongo import db
 
 from app.processing import processing_data
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 app = Celery("tasks", broker=celery_config.broker)
@@ -14,13 +22,17 @@ app.conf.update(
 )
 
 app.conf.beat_schedule = {
-    "add-every-1-minutes": {
+    "Parsing Sahibinden": {
         "task": "app.tasks.start_processing",
-        "schedule": crontab(minute="*/5"),
-    },
+        "schedule": crontab(minute="*/3"),
+    }
 }
 
 
 @app.task
-def start_processing():
-    processing_data()
+def start_processing() -> None:
+    city = db.cities.find().sort("last_parsing")[0]
+    logging.info(f"Start parsing {city['name']}")
+    city_parameter = dict(address_town=city["_id"])
+    processing_data(city_parameter)
+    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})

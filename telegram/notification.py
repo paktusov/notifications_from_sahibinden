@@ -14,6 +14,8 @@ from app.models import Ad
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
+closed_ares = [area["name"] for area in db.areas.find({"is_closed": True})]
+
 
 def format_price(price: float) -> str:
     return f"{price:,.0f}".replace(",", " ")
@@ -33,7 +35,9 @@ def make_caption(ad: Ad, status: str = "new") -> str:
     if not ad.data:
         caption = hiperlink + price
         return caption
-    location = f"{ad.data.district} / #{ad.data.area}\n"
+    if ad.data.area in closed_ares:
+        ad.data.area += "⛔️"
+    location = f"#{ad.data.district} / #{ad.data.area}\n"
     rooms = f"{ad.data.room_count}\n"
     area = f"{ad.data.net_area} ({ad.data.gross_area}) m²\n"
     floor = f"{ad.data.floor}/{ad.data.building_floor_count} floor\n"
