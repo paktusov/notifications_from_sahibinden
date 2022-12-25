@@ -33,6 +33,6 @@ app.conf.beat_schedule = {
 def start_processing() -> None:
     city = db.cities.find().sort("last_parsing")[0]
     logging.info(f"Start parsing {city['name']}")
+    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})
     city_parameter = dict(address_town=city["_id"])
     processing_data(city_parameter)
-    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})
