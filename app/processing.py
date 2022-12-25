@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from mongo import db
-from telegram.notification import telegram_notify
+from bot.notification import telegram_notify
 
 from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image, get_areas
 from app.models import Ad, DataAd, Area

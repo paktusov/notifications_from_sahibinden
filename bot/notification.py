@@ -1,12 +1,11 @@
 import logging
 
-from telebot.apihelper import ApiTelegramException
-from telebot.types import InputMediaPhoto
-from telebot.util import antiflood
+from telegram import InputMediaPhoto
+from telegram.error import TelegramError
 
 from mongo import db
-from telegram.bot import bot, channel_id, chat_id
-from telegram.models import TelegramIdAd
+from bot.__main__ import updater, channel_id, chat_id
+from bot.models import TelegramIdAd
 
 from app.models import Ad
 
@@ -62,13 +61,13 @@ def send_comment_for_ad_to_telegram(ad: Ad) -> None:
     comment = f"{icon}{formatted_price_diff} TL = {new_price} TL"
     try:
         antiflood(
-            bot.send_message,
+            updater.bot.send_message,
             chat_id=chat_id,
             text=comment,
             reply_to_message_id=telegram_chat_message_id,
             parse_mode="HTML",
         )
-    except ApiTelegramException as e:
+    except TelegramError as e:
         logging.error(e)
 
 
@@ -82,13 +81,13 @@ def edit_ad_in_telegram(ad: Ad, status: str) -> None:
     caption = make_caption(ad, status)
     try:
         antiflood(
-            bot.edit_message_caption,
+            updater.bot.edit_message_caption,
             chat_id=channel_id,
             message_id=telegram_channel_message_id,
             parse_mode="HTML",
             caption=caption,
         )
-    except ApiTelegramException as e:
+    except TelegramError as e:
         logging.error(e)
 
 
@@ -102,7 +101,7 @@ def send_ad_to_telegram(ad: Ad) -> None:
             logging.info(f"Send message to {subscriber['_id']}")
             if ad.last_price <= subscriber["max_price"]:
                 antiflood(bot.send_media_group, chat_id=subscriber['_id'], media=media)
-    except ApiTelegramException as e:
+    except TelegramError as e:
         logging.error(e)
 
 
