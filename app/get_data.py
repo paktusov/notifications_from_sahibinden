@@ -164,8 +164,10 @@ def get_data_and_photos_ad(url: str) -> (dict | None, list[str] | None):
         return None, None
 
     html = PyQuery(response.text)
-    customdata = json.loads(html("#gaPageViewTrackingJson").attr("data-json"))
-    data = {i["name"]: i["value"] for i in customdata["customVars"]}
+    customdata = html("#gaPageViewTrackingJson").attr("data-json")
+    if not json:
+        return None, None
+    data = {i["name"]: i["value"] for i in json.loads(customdata)["customVars"]}
 
     img_links = []
     availabl_megaphotos = "passive" not in html('a:Contains("Mega Photo")').attr("class")
