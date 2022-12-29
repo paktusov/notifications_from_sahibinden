@@ -19,7 +19,8 @@ ipython = "^8.7.0"
 pylint = "^2.15.8"
 isort = "^5.11.2"
 black = "^22.12.0"
-python-telegram-bot = "^13.15"
+python-telegram-bot = {extras = ["rate-limiter"], version = "^20.0a4"}
+aiolimiter = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 

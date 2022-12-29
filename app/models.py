@@ -67,6 +67,7 @@ class Ad(BaseModel):
     data: Optional[DataAd]
     photos: Optional[list[str]]
     map_image: Optional[str]
+    address_town: Optional[str]
 
     @property
     def last_price(self):

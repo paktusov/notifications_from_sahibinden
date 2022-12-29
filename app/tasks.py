@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 
@@ -24,15 +25,16 @@ app.conf.update(
 app.conf.beat_schedule = {
     "Parsing Sahibinden": {
         "task": "app.tasks.start_processing",
-        "schedule": crontab(minute="*/3"),
+        "schedule": crontab(minute="*/5"),
     }
 }
 
 
 @app.task
 def start_processing() -> None:
+    loop = asyncio.get_event_loop()
     city = db.cities.find().sort("last_parsing")[0]
     logging.info(f"Start parsing {city['name']}")
-    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})
     city_parameter = dict(address_town=city["_id"])
-    processing_data(city_parameter)
+    loop.run_until_complete(processing_data(city_parameter))
+    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})

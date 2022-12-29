@@ -4,17 +4,21 @@ from telegram import InputMediaPhoto
 from telegram.error import TelegramError
 
 from mongo import db
-from bot.__main__ import updater, channel_id, chat_id
+from bot.bot import application
 from bot.models import TelegramIdAd
 
 from app.models import Ad
+from config import telegram_config
+
+chat_id = telegram_config.id_antalya_chat
+channel_id = telegram_config.id_antalya_channel
 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 closed_ares = [area["name"] for area in db.areas.find({"is_closed": True})]
-
+connection_parameters = dict(connect_timeout=20, read_timeout=20)
 
 def format_price(price: float) -> str:
     return f"{price:,.0f}".replace(",", " ")
@@ -47,7 +51,7 @@ def make_caption(ad: Ad, status: str = "new") -> str:
     return caption
 
 
-def send_comment_for_ad_to_telegram(ad: Ad) -> None:
+async def send_comment_for_ad_to_telegram(ad: Ad) -> None:
     telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
     if not telegram_post_dict:
         logging.error("Telegram post not found for ad %s", ad.id)
@@ -60,18 +64,18 @@ def send_comment_for_ad_to_telegram(ad: Ad) -> None:
     icon = "📉 " if price_diff < 0 else "📈 +"
     comment = f"{icon}{formatted_price_diff} TL = {new_price} TL"
     try:
-        antiflood(
-            updater.bot.send_message,
+        await application.bot.send_message(
             chat_id=chat_id,
             text=comment,
             reply_to_message_id=telegram_chat_message_id,
             parse_mode="HTML",
+            **connection_parameters,
         )
     except TelegramError as e:
-        logging.error(e)
+        logging.error('Error while sending comment for ad %s to telegram: %s', ad.id, e)
 
 
-def edit_ad_in_telegram(ad: Ad, status: str) -> None:
+async def edit_ad_in_telegram(ad: Ad, status: str) -> None:
     telegram_post_dict = db.telegram_posts.find_one({"_id": ad.id})
     if not telegram_post_dict:
         logging.error("Telegram post not found for ad %s", ad.id)
@@ -80,41 +84,43 @@ def edit_ad_in_telegram(ad: Ad, status: str) -> None:
     telegram_channel_message_id = telegram_post.telegram_channel_message_id
     caption = make_caption(ad, status)
     try:
-        antiflood(
-            updater.bot.edit_message_caption,
+        await application.bot.edit_message_caption(
             chat_id=channel_id,
             message_id=telegram_channel_message_id,
             parse_mode="HTML",
             caption=caption,
+            **connection_parameters,
         )
     except TelegramError as e:
-        logging.error(e)
+        logging.error('Error while editing ad %s in telegram: %s', ad.id, e)
 
 
-def send_ad_to_telegram(ad: Ad) -> None:
+async def send_ad_to_telegram(ad: Ad) -> None:
     media = [InputMediaPhoto(media=ad.map_image, caption=make_caption(ad), parse_mode="HTML")]
     for photo in ad.photos:
         media.append(InputMediaPhoto(media=photo))
     try:
-        antiflood(bot.send_media_group, chat_id=channel_id, media=media)
-        for subscriber in db.subscribers.find():
-            logging.info(f"Send message to {subscriber['_id']}")
-            if ad.last_price <= subscriber["max_price"]:
-                antiflood(bot.send_media_group, chat_id=subscriber['_id'], media=media)
+        logging.info("Sending ad %s to telegram", ad.id)
+        await application.bot.send_media_group(chat_id=channel_id, media=media, **connection_parameters)
+        subscribers = db.subscribers.find({"active": True})
+        for subscriber in subscribers:
+            if ad.last_price <= subscriber["parameters"]["max_price"]:
+                logging.info(f"Send message to {subscriber['_id']}")
+                await application.bot.send_media_group(chat_id=subscriber['_id'], media=media, **connection_parameters)
     except TelegramError as e:
-        logging.error(e)
+        logging.error('Error while sending ad %s to telegram: %s', ad.id, e)
 
 
-def telegram_notify(ad: Ad) -> None:
+async def telegram_notify(ad: Ad) -> None:
     if ad.removed:
-        edit_ad_in_telegram(ad, "remove")
+        await edit_ad_in_telegram(ad, "remove")
     elif ad.last_seen == ad.created and ad.data and (ad.created - ad.data.creation_date).days < 1:
-        send_ad_to_telegram(ad)
+        await send_ad_to_telegram(ad)
     elif ad.last_seen == ad.last_update:
-        send_comment_for_ad_to_telegram(ad)
-        edit_ad_in_telegram(ad, "update")
+        await send_comment_for_ad_to_telegram(ad)
+        await edit_ad_in_telegram(ad, "update")
     elif ad.last_condition_removed:
         if len(ad.history_price) == 1:
-            edit_ad_in_telegram(ad, "new")
+            await edit_ad_in_telegram(ad, "new")
         else:
-            edit_ad_in_telegram(ad, "update")
+            await edit_ad_in_telegram(ad, "update")

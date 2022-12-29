@@ -1,63 +1,107 @@
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Dispatcher, ConversationHandler, CommandHandler, MessageHandler, Filters, CallbackContext, \
-    CallbackQueryHandler
+import logging
+
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ConversationHandler,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    Application,
+    ContextTypes, filters
+)
+
+from bot.models import Subscriber, SubscriberParameters
+from mongo import db
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
 
 PRICE, CHECK, CONFIRM = range(3)
 
 
-def start(update: Update, context: CallbackContext) -> int:
-    reply_keyboard = [['Продолжить']]
-    update.message.reply_text(
-        "Привет, ищешь квартиру в Антилии? Пройди опрос, чтоб я смог присылать тебе подходящие варианты. В любой момент нажми /cancel, чтобы отменить",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id = update.message.chat.id
+    context.user_data["user_id"] = user_id
+    reply_keyboard = [[
+        InlineKeyboardButton("Продолжить", callback_data="continue"),
+        InlineKeyboardButton("Отмена", callback_data="cancel"),
+    ]]
+
+    await context.bot.send_message(
+        user_id,
+        "Привет, ищешь квартиру в Антилии? Пройди опрос, чтоб я смог присылать тебе подходящие варианты.",
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
     )
     return PRICE
 
 
-def price(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text(
-        "Сколько ты готов потратить TL на аренду? (в месяц)"
+async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    await context.bot.send_message(
+        context.user_data.get("user_id"),
+        "Какую максимальную сумму TL ты готов потратить на аренду в месяц?"
     )
-    return CONFIRM
+    return CHECK
 
 
-def check(update: Update, context: CallbackContext) -> range:
+async def check(update: Update, context: ContextTypes.DEFAULT_TYPE) -> range:
     try:
-        context.user_data["price"] = update.message.text
+        context.user_data["max_price"] = int(update.message.text)
     except ValueError:
-        update.message.reply_text("Цена должна быть числом")
-        return PRICE
+        await update.message.reply_text("Цена должна быть числом. Попробуй еще раз")
+        # logging.info(update)
+        return CHECK
 
-    reply_keyboard = [['Да', 'Нет']]
-    update.message.reply_text(
-        f"Спасибо! Ты ищешь квартиру по этим параметрам:\n - Цена до {context.user_data['price']}",
-        reply_markup=ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True),
+    reply_keyboard = [[
+        InlineKeyboardButton('Да', callback_data='Yes'),
+        InlineKeyboardButton('Нет', callback_data='No'),
+    ]]
+    await update.message.reply_text(
+        f"Спасибо! Ты ищешь квартиру по этим параметрам:\n - Цена до {context.user_data['max_price']}",
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
     )
     return CONFIRM
 
 
-def confirm(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Отлично! Жди уведомлений о новых квартирах")
+async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id = context.user_data["user_id"]
+    subscriber = Subscriber(
+        _id=user_id,
+        parameters=SubscriberParameters(
+            max_price=context.user_data["max_price"],
+        ),
+    )
+    db.subscribers.find_one_and_replace({"_id": user_id}, subscriber.dict(by_alias=True), upsert=True)
+    await context.bot.send_message(user_id, "Отлично! Жди уведомлений о новых квартирах")
     return ConversationHandler.END
 
 
-def cancel(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("До свидания! Уведомления отключены")
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    # logging.info(update)
+    user_id = context.user_data["user_id"]
+    db.subscribers.find_one_and_update({"_id": user_id}, {"$set": {"active": False}})
+    await context.bot.send_message(user_id, "До свидания! Уведомления отключены")
     return ConversationHandler.END
 
 
-def setup_conversation(dispatcher: Dispatcher) -> None:
-    dispatcher.add_handler(
+def setup_conversation(application: Application) -> None:
+    application.add_handler(
         ConversationHandler(
             entry_points=[CommandHandler("start", start)],
             states={
-                PRICE: [CallbackQueryHandler(price)],
-                CHECK: [CallbackQueryHandler(check)],
+                PRICE: [
+                    CallbackQueryHandler(price, pattern="continue"),
+                    CallbackQueryHandler(cancel, pattern="cancel"),
+                    MessageHandler(filters.TEXT, start),
+                ],
+                CHECK: [MessageHandler(filters.TEXT, check)],
                 CONFIRM: [
-                    MessageHandler(Filters.regex('^Да'), confirm),
-                    MessageHandler(Filters.regex('^Нет'), price),
+                    CallbackQueryHandler(confirm, pattern="Yes"),
+                    CallbackQueryHandler(price, pattern="No"),
                 ],
             },
             fallbacks=[CommandHandler("cancel", cancel)],
+            per_chat=False,
+
         )
     )
