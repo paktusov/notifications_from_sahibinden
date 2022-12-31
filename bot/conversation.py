@@ -21,6 +21,12 @@ PRICE, CHECK, CONFIRM = range(3)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    if update.message.sender_chat:
+        await context.bot.send_message(
+            update.message.sender_chat.id,
+            "Для подписки на уведомления, пожалуйста, напишите мне в личные сообщения @flat_in_Antalya_test_bot",
+        )
+        return ConversationHandler.END
     user_id = update.message.chat.id
     context.user_data["user_id"] = user_id
     reply_keyboard = [[
@@ -102,6 +108,5 @@ def setup_conversation(application: Application) -> None:
             },
             fallbacks=[CommandHandler("cancel", cancel)],
             per_chat=False,
-
         )
     )

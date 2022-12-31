@@ -27,12 +27,16 @@ async def get_telegram_message_id(update: Update, context: CallbackContext) -> N
         _id=ad_id,
     )
     db.telegram_posts.find_one_and_replace({"_id": ad_id}, post.dict(by_alias=True), upsert=True)
+    logging.info("Telegram post %s saved", ad_id)
 
 
 def setup_get_id(application: Application) -> None:
     application.add_handler(
         MessageHandler(
-            filters.PHOTO & filters.CaptionEntity('text_link') & filters.ForwardedFrom(chat_id=int(channel_id)),
+            filters.PHOTO &
+            filters.CaptionEntity('text_link') &
+            filters.ForwardedFrom(chat_id=int(channel_id)) &
+            filters.UpdateType.MESSAGE,
             get_telegram_message_id
         )
     )
