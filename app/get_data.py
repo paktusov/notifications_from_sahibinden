@@ -24,7 +24,6 @@ SAHIBINDEN_DEFAULT_PARAMS = {
     "price_currency": "1",
     "address_city": "7",
     "pagingOffset": "0",
-
 }
 VARIABLE_PARAMS = {
     # (1day, 7days, 15days, 30days)
@@ -147,7 +146,7 @@ def get_areas(city_code: str) -> list[dict] | None:
     areas = []
     for neighbourhood in response.json():
         for area in neighbourhood["quarters"]:
-            if type(area) != dict:
+            if not isinstance(area, dict):
                 continue
             areas.append(area)
     return areas

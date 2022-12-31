@@ -105,7 +105,7 @@ async def send_ad_to_telegram(ad: Ad) -> None:
         subscribers = db.subscribers.find({"active": True})
         for subscriber in subscribers:
             if ad.last_price <= subscriber["parameters"]["max_price"]:
-                logging.info(f"Send message to {subscriber['_id']}")
+                logging.info("Send message to %s", subscriber['_id'])
                 await application.bot.send_media_group(chat_id=subscriber['_id'], media=media, **connection_parameters)
     except TelegramError as e:
         logging.error('Error while sending ad %s to telegram: %s', ad.id, e)

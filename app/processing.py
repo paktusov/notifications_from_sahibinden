@@ -1,17 +1,15 @@
 import logging
 from datetime import datetime
 
-from mongo import db
 from bot.notification import telegram_notify
+from mongo import db
 
-from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image, get_areas
-from app.models import Ad, DataAd, Area
+from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image
+from app.models import Ad, DataAd
 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
-
 
 
 def create_dataad_from_data(data: dict) -> DataAd:
@@ -37,7 +35,9 @@ def create_dataad_from_data(data: dict) -> DataAd:
 
 
 def create_ad_from_data(data: list[dict], city_parameters: dict) -> list[Ad]:
-    return [Ad(**row, **city_parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
+    return [
+        Ad(**row, **city_parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])
+    ]
 
 
 async def processing_data(city_parameter: dict) -> None:
