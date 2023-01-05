@@ -11,6 +11,7 @@ class TelegramIdAd(BaseModel):
 
 class SubscriberParameters(BaseModel):
     max_price: Optional[int]
+    floor: Optional[list[str]]
 
 
 class Subscriber(BaseModel):

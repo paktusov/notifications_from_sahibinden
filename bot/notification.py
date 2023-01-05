@@ -107,8 +107,16 @@ async def send_ad_to_telegram(ad: Ad) -> None:
         subscribers = db.subscribers.find({"active": True})
         for subscriber in subscribers:
             parameters = subscriber["parameters"]
-            if not parameters.get('max_price') or not ad.last_price <= parameters["max_price"]:
+            if parameters.get('max_price') and ad.last_price > parameters["max_price"]:
                 continue
+            if parameters.get('floor'):
+                if "without_last" in parameters["floor"] and ad.data.floor == str(ad.data.building_floor_count):
+                    continue
+                elif "without_first" in parameters["floor"] and ad.data.floor in ['Elevation 1', 'Garden-Floor']:
+                    continue
+                elif "without_basement" in parameters["floor"] and ad.data.floor in ['Basement', 'Ground Floor', 'Raised Ground Floor']:
+                    continue
+
             await application.bot.send_media_group(chat_id=subscriber['_id'], media=media, **connection_parameters)
             logging.info("Send message %s to %s", ad.id, subscriber['_id'])
     except TelegramError as e:
