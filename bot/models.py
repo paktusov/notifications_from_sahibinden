@@ -15,5 +15,5 @@ class SubscriberParameters(BaseModel):
 
 class Subscriber(BaseModel):
     _id: str
-    active: bool = True
+    active: bool = False
     parameters: SubscriberParameters
