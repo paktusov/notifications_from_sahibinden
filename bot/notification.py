@@ -1,14 +1,15 @@
 import logging
 
-from telegram import InputMediaPhoto
 from telegram.error import TelegramError
 
-from mongo import db
 from bot.bot import application
 from bot.models import TelegramIdAd
+from config import telegram_config
+from mongo import db
+from telegram import InputMediaPhoto
 
 from app.models import Ad
-from config import telegram_config
+
 
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
@@ -19,6 +20,55 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 closed_ares = [area["name"] for area in db.areas.find({"is_closed": True})]
 connection_parameters = dict(connect_timeout=20, read_timeout=20)
+
+
+def subscription_validation(ad: Ad, parameters: dict) -> bool:
+    if parameters.get("max_price") and ad.last_price > parameters["max_price"]:
+        return False
+
+    if parameters.get("floor"):
+        if "without_last" in parameters["floor"] and ad.data.floor == str(ad.data.building_floor_count):
+            return False
+        if "without_first" in parameters["floor"] and ad.data.floor in ["Elevation 1", "Garden-Floor"]:
+            return False
+        if "without_basement" in parameters["floor"] and ad.data.floor in [
+            "Basement",
+            "Ground Floor",
+            "Raised Ground Floor",
+        ]:
+            return False
+
+    if parameters.get("rooms"):
+        suitable_rooms = False
+        if "studio" in parameters["rooms"] and ad.data.room_count == "Studio Flat (1+0)":
+            suitable_rooms = True
+        if "one" in parameters["rooms"] and ad.data.room_count in ["1+1", "1.5+1"]:
+            suitable_rooms = True
+        if "two" in parameters["rooms"] and ad.data.room_count in ["2+0", "2+1", "2.5+1", "2+2"]:
+            suitable_rooms = True
+        if "three" in parameters["rooms"] and ad.data.room_count in ["3+0", "3+1", "3.5+1", "3+2", "3+3"]:
+            suitable_rooms = True
+        if "four" in parameters["rooms"] and ad.data.room_count in ["4+0", "4+1", "4.5+1", "4+2", "4+3", "4+4", "5+1", "5.5+1", "5+2", "5+3", "5+4", "6+1", "6+2", "6+3", "6+4", "7+1", "7+2", "7+3", "8+1", "8+2", "8+3", "8+4", "9+1", "9+2", "9+3", "9+4", "9+5", "9+6", "10+1", "10+2", "Over 10"]:
+            suitable_rooms = True
+        if not suitable_rooms:
+            return False
+    if parameters.get("heating"):
+        suitable_heating = False
+        if "gas" in parameters["heating"] and ad.data.heating_type == "Central Heating Boilers":
+            suitable_heating = True
+        if "electricity" in parameters["heating"] and ad.data.heating_type in ["Elektrikli Radyatör", "Room Heater"]:
+            suitable_heating = True
+        if "central" in parameters["heating"] and ad.data.heating_type in ["Central Heating", "Central Heating (Share Meter)"]:
+            suitable_heating = True
+        if "underfloor" in parameters["heating"] and ad.data.heating_type == "Floor Heating":
+            suitable_heating = True
+        if "ac" in parameters["heating"] and ad.data.heating_type in ["Air Conditioning", "Fan Coil Unit", "VRV", "Heat Pump"]:
+            suitable_heating = True
+        if not suitable_heating:
+            return False
+
+    return True
+
 
 def format_price(price: float) -> str:
     return f"{price:,.0f}".replace(",", " ")
@@ -73,7 +123,7 @@ async def send_comment_for_ad_to_telegram(ad: Ad) -> None:
         )
         logging.info("Comment ad %s to telegram", ad.id)
     except TelegramError as e:
-        logging.error('Error while sending comment for ad %s to telegram: %s', ad.id, e)
+        logging.error("Error while sending comment for ad %s to telegram: %s", ad.id, e)
 
 
 async def edit_ad_in_telegram(ad: Ad, status: str) -> None:
@@ -94,7 +144,7 @@ async def edit_ad_in_telegram(ad: Ad, status: str) -> None:
         )
         logging.info("Edit ad %s to telegram", ad.id)
     except TelegramError as e:
-        logging.error('Error while editing ad %s in telegram: %s', ad.id, e)
+        logging.error("Error while editing ad %s in telegram: %s", ad.id, e)
 
 
 async def send_ad_to_telegram(ad: Ad) -> None:
@@ -107,20 +157,12 @@ async def send_ad_to_telegram(ad: Ad) -> None:
         subscribers = db.subscribers.find({"active": True})
         for subscriber in subscribers:
             parameters = subscriber["parameters"]
-            if parameters.get('max_price') and ad.last_price > parameters["max_price"]:
+            if not subscription_validation(ad, parameters):
                 continue
-            if parameters.get('floor'):
-                if "without_last" in parameters["floor"] and ad.data.floor == str(ad.data.building_floor_count):
-                    continue
-                elif "without_first" in parameters["floor"] and ad.data.floor in ['Elevation 1', 'Garden-Floor']:
-                    continue
-                elif "without_basement" in parameters["floor"] and ad.data.floor in ['Basement', 'Ground Floor', 'Raised Ground Floor']:
-                    continue
-
-            await application.bot.send_media_group(chat_id=subscriber['_id'], media=media, **connection_parameters)
-            logging.info("Send message %s to %s", ad.id, subscriber['_id'])
+            await application.bot.send_media_group(chat_id=subscriber["_id"], media=media, **connection_parameters)
+            logging.info("Send message %s to %s", ad.id, subscriber["_id"])
     except TelegramError as e:
-        logging.error('Error while sending ad %s to telegram: %s', ad.id, e)
+        logging.error("Error while sending ad %s to telegram: %s", ad.id, e)
 
 
 async def telegram_notify(ad: Ad) -> None:

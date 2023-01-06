@@ -1,11 +1,12 @@
 import logging
 
-from telegram import Update
-from telegram.ext import MessageHandler, CallbackContext, filters, Application
+from telegram.ext import Application, CallbackContext, MessageHandler, filters
 
 from bot.models import TelegramIdAd
-from mongo import db
 from config import telegram_config
+from mongo import db
+from telegram import Update
+
 
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
@@ -33,10 +34,10 @@ async def get_telegram_message_id(update: Update, context: CallbackContext) -> N
 def setup_get_id(application: Application) -> None:
     application.add_handler(
         MessageHandler(
-            filters.PHOTO &
-            filters.CaptionEntity('text_link') &
-            filters.ForwardedFrom(chat_id=int(channel_id)) &
-            filters.UpdateType.MESSAGE,
-            get_telegram_message_id
+            filters.PHOTO
+            & filters.CaptionEntity("text_link")
+            & filters.ForwardedFrom(chat_id=int(channel_id))
+            & filters.UpdateType.MESSAGE,
+            get_telegram_message_id,
         )
     )

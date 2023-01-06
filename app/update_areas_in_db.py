@@ -13,7 +13,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 def processing_areas() -> None:
     cities = db.cities.find()
     for city in cities:
-        logger.info("Processing areas for %s", city['_id'])
+        logger.info("Processing areas for %s", city["_id"])
         data = get_areas(city["_id"])
         if not data:
             logger.error("Can't parse areas from %s", city["_id"])

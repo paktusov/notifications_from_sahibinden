@@ -1,8 +1,9 @@
-from telegram.ext import ApplicationBuilder, AIORateLimiter
+from telegram.ext import AIORateLimiter, ApplicationBuilder
 
-from config import telegram_config
-from bot.conversation import setup_conversation, setup_cancel
+from bot.conversation import setup_cancel, setup_conversation
 from bot.get_id import setup_get_id
+from config import telegram_config
+
 
 limiter = AIORateLimiter(max_retries=10)
 application = ApplicationBuilder().token(telegram_config.token_antalya_bot).rate_limiter(limiter).build()
