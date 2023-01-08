@@ -33,8 +33,8 @@ app.conf.beat_schedule = {
 @app.task
 def start_processing() -> None:
     loop = asyncio.get_event_loop()
-    city = db.cities.find().sort("last_parsing")[0]
-    logging.info("Start parsing %s", city["name"])
-    city_parameter = dict(address_town=city["_id"])
-    loop.run_until_complete(processing_data(city_parameter))
-    db.cities.find_one_and_update({"_id": city["_id"]}, {"$set": {"last_parsing": datetime.now()}})
+    town = db.towns.find().sort("last_parsing")[0]
+    logging.info("Start parsing %s", town["name"])
+    parameter = dict(address_town=town["_id"])
+    loop.run_until_complete(processing_data(parameter))
+    db.cities.find_one_and_update({"_id": town["_id"]}, {"$set": {"last_parsing": datetime.now()}})

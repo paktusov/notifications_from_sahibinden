@@ -8,7 +8,7 @@ class Area(BaseModel):
     id: str = Field(alias="_id")
     name: str
     is_closed: bool = False
-    city_id: str
+    town_id: str
 
     @root_validator(pre=True)
     def init_area(cls, values):
@@ -17,7 +17,7 @@ class Area(BaseModel):
         return dict(**values)
 
 
-class City(BaseModel):
+class Town(BaseModel):
     id: str = Field(alias="_id")
     name: str
     last_parsing: datetime

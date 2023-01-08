@@ -34,20 +34,20 @@ def create_dataad_from_data(data: dict) -> DataAd:
     )
 
 
-def create_ad_from_data(data: list[dict], city_parameters: dict) -> list[Ad]:
+def create_ad_from_data(data: list[dict], parameters: dict) -> list[Ad]:
     return [
-        Ad(**row, **city_parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])
+        Ad(**row, **parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])
     ]
 
 
-async def processing_data(city_parameter: dict) -> None:
+async def processing_data(parameters: dict) -> None:
     flats = db.flats
     now_time = datetime.now()
-    data = get_data_with_cookies(city_parameter)
+    data = get_data_with_cookies(parameters)
     if not data:
         logger.warning("Can't parse ads from sahibinden.com")
         return
-    parsed_ads = create_ad_from_data(data, city_parameter)
+    parsed_ads = create_ad_from_data(data, parameters)
 
     ids = [ad.id for ad in parsed_ads]
 
@@ -74,7 +74,7 @@ async def processing_data(city_parameter: dict) -> None:
         flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
         await telegram_notify(ad)
 
-    missed_ad = [Ad(**ad) for ad in flats.find({"last_seen": {"$lt": now_time}, "removed": False, **city_parameter})]
+    missed_ad = [Ad(**ad) for ad in flats.find({"last_seen": {"$lt": now_time}, "removed": False, **parameters})]
 
     for ad in missed_ad:
         ad.remove()

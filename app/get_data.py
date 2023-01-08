@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import datetime
 from random import shuffle
@@ -11,6 +12,9 @@ from pyquery import PyQuery
 from selenium import webdriver
 
 from config import mapbox_config
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 SAHIBINDEN_HOST = "https://www.sahibinden.com"
@@ -118,10 +122,10 @@ def get_data_with_selenium(**url_params: Any) -> list[dict]:
     return data["classifiedMarkers"]
 
 
-def get_data_with_cookies(city_params: dict) -> list[dict] | None:
+def get_data_with_cookies(parameters: dict) -> list[dict] | None:
     response = requests.get(
         url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_ADS_SUFFIX,
-        params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | city_params,
+        params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | parameters,
         cookies=COOKIES,
         headers=HEADERS,
         timeout=10,
@@ -132,15 +136,14 @@ def get_data_with_cookies(city_params: dict) -> list[dict] | None:
     return data["classifiedMarkers"]
 
 
-def get_areas(city_code: str) -> list[dict] | None:
+def get_areas(town_code: str) -> list[dict] | None:
     response = requests.get(
         url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_AREAS_SUFFIX,
-        params={"townId": city_code},
+        params={"townId": town_code},
         cookies=COOKIES,
         headers=HEADERS,
         timeout=10,
     )
-    print(response.status_code)
     if response.status_code != 200:
         return None
     areas = []

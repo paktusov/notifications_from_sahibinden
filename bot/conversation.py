@@ -27,6 +27,12 @@ CHECK_HEATING = 6
 END = ConversationHandler.END
 
 
+def inline_keyboard_button(text: str, callback_data: str, data: list) -> InlineKeyboardButton:
+    def markup(d):
+        return f"{'✔' if d in data else '✖'}️"
+
+    return InlineKeyboardButton(f"{markup(callback_data)} {text}", callback_data=callback_data)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.message.sender_chat:
         await context.bot.send_message(
@@ -134,23 +140,23 @@ async def floor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if callback_data in ["without_basement", "without_first", "without_last"]:
         if "all" in context.user_data["floor"]:
             context.user_data["floor"].remove("all")
-        context.user_data["floor"].append(callback_data)
+        if callback_data in context.user_data["floor"]:
+            context.user_data["floor"].remove(callback_data)
+        else:
+            context.user_data["floor"].append(callback_data)
     elif update.callback_query.data == "all":
         context.user_data["floor"] = ["all"]
 
-    def markup(data):
-        return f"{'✔' if data in context.user_data['floor'] else '✖'}️"
+    data = context.user_data['floor']
 
     reply_keyboard = [
         [
-            InlineKeyboardButton(f"{markup('all')} Любой", callback_data="all"),
-            InlineKeyboardButton(
-                f"{markup('without_basement')}️️ Кроме подвала и цоколя", callback_data="without_basement"
-            ),
+            inline_keyboard_button('Любой', 'all', data),
+            inline_keyboard_button('Кроме подвала/цоколя', 'without_basement', data),
         ],
         [
-            InlineKeyboardButton(f"{markup('without_first')}️️ Кроме первого", callback_data="without_first"),
-            InlineKeyboardButton(f"{markup('without_last')}️ Кроме последнего", callback_data="without_last"),
+            inline_keyboard_button('Кроме первого этажа', 'without_first', data),
+            inline_keyboard_button('Кроме последнего этажа', 'without_last', data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),
@@ -179,25 +185,27 @@ async def rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if callback_data in ["studio", "one", "two", "three", "four"]:
         if "all" in context.user_data["rooms"]:
             context.user_data["rooms"].remove("all")
-        context.user_data["rooms"].append(callback_data)
+        if callback_data in context.user_data["rooms"]:
+            context.user_data["rooms"].remove(callback_data)
+        else:
+            context.user_data["rooms"].append(callback_data)
     elif update.callback_query.data == "all":
         context.user_data["rooms"] = ["all"]
 
-    def markup(data):
-        return f"{'✔' if data in context.user_data['rooms'] else '✖'}️"
+    data = context.user_data['rooms']
 
     reply_keyboard = [
         [
-            InlineKeyboardButton(f"{markup('studio')}️️ Студия", callback_data="studio"),
-            InlineKeyboardButton(f"{markup('one')}️️ Одна", callback_data="one"),
+            inline_keyboard_button('Cтудия', 'studio', data),
+            inline_keyboard_button('Одна', 'one', data),
         ],
         [
-            InlineKeyboardButton(f"{markup('two')} Две", callback_data="two"),
-            InlineKeyboardButton(f"{markup('three')} Три", callback_data="three"),
+            inline_keyboard_button('Две', 'two', data),
+            inline_keyboard_button('Три', 'three', data),
         ],
         [
-            InlineKeyboardButton(f"{markup('four')} Четыре и более", callback_data="four"),
-            InlineKeyboardButton(f"{markup('all')} Любое", callback_data="all"),
+            inline_keyboard_button('Четыре', 'four', data),
+            inline_keyboard_button('Любое количество', 'all', data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),
@@ -233,21 +241,20 @@ async def heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     elif update.callback_query.data == "all":
         context.user_data["heating"] = ["all"]
 
-    def markup(data):
-        return f"{'✔' if data in context.user_data['heating'] else '✖'}️"
+    data = context.user_data['heating']
 
     reply_keyboard = [
         [
-            InlineKeyboardButton(f"{markup('gas')}️️ Газовое", callback_data="gas"),
-            InlineKeyboardButton(f"{markup('electricity')}️️ Электрическое", callback_data="electricity"),
+            inline_keyboard_button('Газовое', 'gas', data),
+            inline_keyboard_button('Электрическое', 'electricity', data),
         ],
         [
-            InlineKeyboardButton(f"{markup('central')} Центральное", callback_data="central"),
-            InlineKeyboardButton(f"{markup('underfloor')}️️ Теплый пол", callback_data="underfloor"),
+            inline_keyboard_button('Теплый пол', 'underfloor', data),
+            inline_keyboard_button('Центральное', 'central', data),
         ],
         [
-            InlineKeyboardButton(f"{markup('ac')}️️ Кондиционер", callback_data="ac"),
-            InlineKeyboardButton(f"{markup('all')} Любое", callback_data="all"),
+            inline_keyboard_button('Кондиционер', 'ac', data),
+            inline_keyboard_button('Любое', 'all', data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),
