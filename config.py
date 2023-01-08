@@ -1,3 +1,4 @@
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -5,6 +6,7 @@ from pydantic import BaseSettings
 from typing import Optional, List
 
 load_dotenv()
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 class TelegramSettings(BaseSettings):

@@ -7,7 +7,13 @@ from app.models import Area
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
+CLOSED_AREAS: list[str] = [
+    "Hurma Mah.",
+    "Sarısu Mh.",
+    "Liman Mah.",
+    "Topçular Mh.",
+]
 
 CLOSED_AREAS: list[str] = [
     "Hurma Mah.",

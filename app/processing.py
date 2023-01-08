@@ -9,7 +9,6 @@ from app.models import Ad, DataAd
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 def create_dataad_from_data(data: dict) -> DataAd:
@@ -35,9 +34,7 @@ def create_dataad_from_data(data: dict) -> DataAd:
 
 
 def create_ad_from_data(data: list[dict], parameters: dict) -> list[Ad]:
-    return [
-        Ad(**row, **parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])
-    ]
+    return [Ad(**row, **parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
 
 
 async def processing_data(parameters: dict) -> None:

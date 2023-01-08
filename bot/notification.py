@@ -1,12 +1,12 @@
 import logging
 
+from telegram import InputMediaPhoto
 from telegram.error import TelegramError
 
 from bot.bot import application
 from bot.models import TelegramIdAd
 from config import telegram_config
 from mongo import db
-from telegram import InputMediaPhoto
 
 from app.models import Ad
 
@@ -14,9 +14,7 @@ from app.models import Ad
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
 
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 closed_ares = [area["name"] for area in db.areas.find({"is_closed": True})]
 connection_parameters = dict(connect_timeout=20, read_timeout=20)
@@ -48,7 +46,39 @@ def subscription_validation(ad: Ad, parameters: dict) -> bool:
             suitable_rooms = True
         if "three" in parameters["rooms"] and ad.data.room_count in ["3+0", "3+1", "3.5+1", "3+2", "3+3"]:
             suitable_rooms = True
-        if "four" in parameters["rooms"] and ad.data.room_count in ["4+0", "4+1", "4.5+1", "4+2", "4+3", "4+4", "5+1", "5.5+1", "5+2", "5+3", "5+4", "6+1", "6+2", "6+3", "6+4", "7+1", "7+2", "7+3", "8+1", "8+2", "8+3", "8+4", "9+1", "9+2", "9+3", "9+4", "9+5", "9+6", "10+1", "10+2", "Over 10"]:
+        if "four" in parameters["rooms"] and ad.data.room_count in [
+            "4+0",
+            "4+1",
+            "4.5+1",
+            "4+2",
+            "4+3",
+            "4+4",
+            "5+1",
+            "5.5+1",
+            "5+2",
+            "5+3",
+            "5+4",
+            "6+1",
+            "6+2",
+            "6+3",
+            "6+4",
+            "7+1",
+            "7+2",
+            "7+3",
+            "8+1",
+            "8+2",
+            "8+3",
+            "8+4",
+            "9+1",
+            "9+2",
+            "9+3",
+            "9+4",
+            "9+5",
+            "9+6",
+            "10+1",
+            "10+2",
+            "Over 10",
+        ]:
             suitable_rooms = True
         if not suitable_rooms:
             return False
@@ -58,11 +88,19 @@ def subscription_validation(ad: Ad, parameters: dict) -> bool:
             suitable_heating = True
         if "electricity" in parameters["heating"] and ad.data.heating_type in ["Elektrikli Radyatör", "Room Heater"]:
             suitable_heating = True
-        if "central" in parameters["heating"] and ad.data.heating_type in ["Central Heating", "Central Heating (Share Meter)"]:
+        if "central" in parameters["heating"] and ad.data.heating_type in [
+            "Central Heating",
+            "Central Heating (Share Meter)",
+        ]:
             suitable_heating = True
         if "underfloor" in parameters["heating"] and ad.data.heating_type == "Floor Heating":
             suitable_heating = True
-        if "ac" in parameters["heating"] and ad.data.heating_type in ["Air Conditioning", "Fan Coil Unit", "VRV", "Heat Pump"]:
+        if "ac" in parameters["heating"] and ad.data.heating_type in [
+            "Air Conditioning",
+            "Fan Coil Unit",
+            "VRV",
+            "Heat Pump",
+        ]:
             suitable_heating = True
         if not suitable_heating:
             return False

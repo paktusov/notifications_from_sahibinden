@@ -1,19 +1,17 @@
 import logging
 
+from telegram import Update
 from telegram.ext import Application, CallbackContext, MessageHandler, filters
 
 from bot.models import TelegramIdAd
 from config import telegram_config
 from mongo import db
-from telegram import Update
 
 
 chat_id = telegram_config.id_antalya_chat
 channel_id = telegram_config.id_antalya_channel
 
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 async def get_telegram_message_id(update: Update, context: CallbackContext) -> None:

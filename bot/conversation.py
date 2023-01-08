@@ -1,5 +1,6 @@
 import logging
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -12,12 +13,9 @@ from telegram.ext import (
 
 from bot.models import Subscriber, SubscriberParameters
 from mongo import db
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
 
 START, NEW_SUBSCRIBE = range(2)
 CHECK_PRICE, CONFIRM_PRICE = range(2, 4)
@@ -32,6 +30,7 @@ def inline_keyboard_button(text: str, callback_data: str, data: list) -> InlineK
         return f"{'✔' if d in data else '✖'}️"
 
     return InlineKeyboardButton(f"{markup(callback_data)} {text}", callback_data=callback_data)
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.message.sender_chat:
@@ -56,7 +55,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     ]
     await context.bot.send_message(
         user_id,
-        "Привет, ищешь квартиру в Антилии? Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.",
+        """Привет, ищешь квартиру в Антилии?
+         Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.""",
     )
     await context.bot.send_message(
         user_id,
@@ -147,16 +147,16 @@ async def floor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     elif update.callback_query.data == "all":
         context.user_data["floor"] = ["all"]
 
-    data = context.user_data['floor']
+    data = context.user_data["floor"]
 
     reply_keyboard = [
         [
-            inline_keyboard_button('Любой', 'all', data),
-            inline_keyboard_button('Кроме подвала/цоколя', 'without_basement', data),
+            inline_keyboard_button("Любой", "all", data),
+            inline_keyboard_button("Кроме подвала/цоколя", "without_basement", data),
         ],
         [
-            inline_keyboard_button('Кроме первого этажа', 'without_first', data),
-            inline_keyboard_button('Кроме последнего этажа', 'without_last', data),
+            inline_keyboard_button("Кроме первого этажа", "without_first", data),
+            inline_keyboard_button("Кроме последнего этажа", "without_last", data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),
@@ -192,20 +192,20 @@ async def rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     elif update.callback_query.data == "all":
         context.user_data["rooms"] = ["all"]
 
-    data = context.user_data['rooms']
+    data = context.user_data["rooms"]
 
     reply_keyboard = [
         [
-            inline_keyboard_button('Cтудия', 'studio', data),
-            inline_keyboard_button('Одна', 'one', data),
+            inline_keyboard_button("Cтудия", "studio", data),
+            inline_keyboard_button("Одна", "one", data),
         ],
         [
-            inline_keyboard_button('Две', 'two', data),
-            inline_keyboard_button('Три', 'three', data),
+            inline_keyboard_button("Две", "two", data),
+            inline_keyboard_button("Три", "three", data),
         ],
         [
-            inline_keyboard_button('Четыре', 'four', data),
-            inline_keyboard_button('Любое количество', 'all', data),
+            inline_keyboard_button("Четыре", "four", data),
+            inline_keyboard_button("Любое количество", "all", data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),
@@ -241,20 +241,20 @@ async def heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     elif update.callback_query.data == "all":
         context.user_data["heating"] = ["all"]
 
-    data = context.user_data['heating']
+    data = context.user_data["heating"]
 
     reply_keyboard = [
         [
-            inline_keyboard_button('Газовое', 'gas', data),
-            inline_keyboard_button('Электрическое', 'electricity', data),
+            inline_keyboard_button("Газовое", "gas", data),
+            inline_keyboard_button("Электрическое", "electricity", data),
         ],
         [
-            inline_keyboard_button('Теплый пол', 'underfloor', data),
-            inline_keyboard_button('Центральное', 'central', data),
+            inline_keyboard_button("Теплый пол", "underfloor", data),
+            inline_keyboard_button("Центральное", "central", data),
         ],
         [
-            inline_keyboard_button('Кондиционер', 'ac', data),
-            inline_keyboard_button('Любое', 'all', data),
+            inline_keyboard_button("Кондиционер", "ac", data),
+            inline_keyboard_button("Любое", "all", data),
         ],
         [
             InlineKeyboardButton("Подтвердить", callback_data="confirm"),

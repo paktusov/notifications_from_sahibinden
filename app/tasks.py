@@ -12,8 +12,6 @@ from app.processing import processing_data
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
 
 app = Celery("tasks", broker=celery_config.broker)
 app.conf.update(
