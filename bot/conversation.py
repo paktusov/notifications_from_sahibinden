@@ -18,10 +18,12 @@ from mongo import db
 logger = logging.getLogger(__name__)
 
 START, NEW_SUBSCRIBE = range(2)
-CHECK_PRICE, CONFIRM_PRICE = range(2, 4)
-CHECK_FLOOR = 4
-CHECK_ROOMS = 5
-CHECK_HEATING = 6
+CHECK_PRICE = 2
+CHECK_FLOOR = 3
+CHECK_ROOMS = 4
+CHECK_HEATING = 5
+AREAS, CHECK_AREAS = range(6, 8)
+CHECK_FURNITURE = 8
 END = ConversationHandler.END
 
 
@@ -55,8 +57,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     ]
     await context.bot.send_message(
         user_id,
-        """Привет, ищешь квартиру в Антилии?
-         Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.""",
+        """Привет, ищешь квартиру в Антилии? Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.""",
     )
     await context.bot.send_message(
         user_id,
@@ -67,7 +68,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def new_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_id = context.user_data["user_id"]
     reply_keyboard = [
         [
             InlineKeyboardButton("Цена", callback_data="price"),
@@ -78,63 +78,46 @@ async def new_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             InlineKeyboardButton("Отопление", callback_data="heating"),
         ],
         [
+            InlineKeyboardButton("Районы", callback_data="towns"),
+            InlineKeyboardButton("Мебель", callback_data="furniture"),
+        ],
+        [
             InlineKeyboardButton("Подписаться", callback_data="subscribe"),
         ],
     ]
-    if update.callback_query:
-        await update.callback_query.answer()
-    if update.callback_query and update.callback_query.data == "continue":
-        await update.callback_query.edit_message_text(
-            "Выбери требуемые параметры поиска и нажми 'Подписаться'",
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
-    else:
-        await context.bot.send_message(
-            user_id,
-            "Выбери требуемые параметры поиска и нажми 'Подписаться'",
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(
+        "Выбери требуемые параметры поиска и нажми 'Подписаться'",
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
     return NEW_SUBSCRIBE
 
 
-async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_id = context.user_data["user_id"]
-    if not context.user_data.get("max_price"):
-        return await add_price(update, context)
+async def get_price(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["max_price"] = context.user_data.get("max_price", ['30000'])
+    callback_data = update.callback_query.data
+    prices = ['5000', '7500', '10000', '12500', '15000', '20000', '25000']
+    if callback_data != 'price':
+        context.user_data['max_price'] = [callback_data]
 
-    reply_keyboard = [
-        [
-            InlineKeyboardButton("Подтвердить", callback_data="сonfirm"),
-            InlineKeyboardButton("Изменить", callback_data="Change"),
-        ]
-    ]
-    await context.bot.send_message(
-        user_id,
-        f"Ты ищешь квартиру с ценой до {context.user_data['max_price']} TL в месяц",
+    data = context.user_data['max_price']
+
+    reply_keyboard = []
+    for price in prices:
+        if not reply_keyboard or len(reply_keyboard[-1]) == 2:
+            reply_keyboard.append([])
+        reply_keyboard[-1].append(inline_keyboard_button(price, price, data))
+    reply_keyboard[-1].append(inline_keyboard_button('Любая', '30000', data))
+    reply_keyboard.append([InlineKeyboardButton("Назад", callback_data="_back")])
+    text = "Какую максимальную сумму TL ты готов потратить на аренду в месяц?"
+    await update.callback_query.edit_message_text(
+        text,
         reply_markup=InlineKeyboardMarkup(reply_keyboard),
-    )
-    return CONFIRM_PRICE
-
-
-async def add_price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await update.callback_query.answer()
-    await context.bot.send_message(
-        context.user_data.get("user_id"), "Какую максимальную сумму TL ты готов потратить на аренду в месяц?"
     )
     return CHECK_PRICE
 
 
-async def check_price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    try:
-        context.user_data["max_price"] = int(update.message.text)
-    except ValueError:
-        await update.message.reply_text("Цена должна быть числом. Попробуй еще раз")
-        return CHECK_PRICE
-    return await price(update, context)
-
-
-async def floor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_id = context.user_data["user_id"]
+async def get_floor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["floor"] = context.user_data.get("floor", ["all"])
     callback_data = update.callback_query.data
     if callback_data in ["without_basement", "without_first", "without_last"]:
@@ -159,27 +142,19 @@ async def floor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             inline_keyboard_button("Кроме последнего этажа", "without_last", data),
         ],
         [
-            InlineKeyboardButton("Подтвердить", callback_data="confirm"),
+            InlineKeyboardButton("Назад", callback_data="_back"),
         ],
     ]
     await update.callback_query.answer()
     text = "Выбери этажи, которые тебе подходят"
-    if callback_data == "floor":
-        await context.bot.send_message(
-            user_id,
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
-    else:
-        await update.callback_query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
     return CHECK_FLOOR
 
 
-async def rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_id = context.user_data["user_id"]
+async def get_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["rooms"] = context.user_data.get("rooms", ["all"])
     callback_data = update.callback_query.data
     if callback_data in ["studio", "one", "two", "three", "four"]:
@@ -208,27 +183,19 @@ async def rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             inline_keyboard_button("Любое количество", "all", data),
         ],
         [
-            InlineKeyboardButton("Подтвердить", callback_data="confirm"),
+            InlineKeyboardButton("Назад", callback_data="_back"),
         ],
     ]
     await update.callback_query.answer()
     text = "Какое количество комнат тебе нужно?"
-    if callback_data == "rooms":
-        await context.bot.send_message(
-            user_id,
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
-    else:
-        await update.callback_query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
     return CHECK_ROOMS
 
 
-async def heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    user_id = context.user_data["user_id"]
+async def get_heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["heating"] = context.user_data.get("heating", ["all"])
     callback_data = update.callback_query.data
     if callback_data in ["gas", "electricity", "underfloor", "central", "ac"]:
@@ -238,7 +205,7 @@ async def heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             context.user_data["heating"].append(callback_data)
         else:
             context.user_data["heating"].remove(callback_data)
-    elif update.callback_query.data == "all":
+    elif callback_data == "all":
         context.user_data["heating"] = ["all"]
 
     data = context.user_data["heating"]
@@ -257,23 +224,107 @@ async def heating(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             inline_keyboard_button("Любое", "all", data),
         ],
         [
-            InlineKeyboardButton("Подтвердить", callback_data="confirm"),
+            InlineKeyboardButton("Назад", callback_data="_back"),
         ],
     ]
     await update.callback_query.answer()
     text = "Выбери тип отопления"
-    if callback_data == "heating":
-        await context.bot.send_message(
-            user_id,
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
-    else:
-        await update.callback_query.edit_message_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(reply_keyboard),
-        )
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
     return CHECK_HEATING
+
+
+async def get_towns(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    towns = db.towns.find()
+    context.user_data["areas"] = context.user_data.get("areas", {})
+
+    reply_keyboard = [[]]
+    for town in towns:
+        reply_keyboard[-1].append(InlineKeyboardButton(town["name"], callback_data=town["_id"]))
+        if not "all_" + town["_id"] in context.user_data["areas"]:
+            context.user_data["areas"]["all_" + town["_id"]] = False
+    reply_keyboard.append([InlineKeyboardButton("Назад", callback_data="_back")])
+    logging.info(context.user_data["areas"])
+    await update.callback_query.answer()
+    text = "Выбери город"
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
+    return AREAS
+
+
+async def get_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    town_id, area, *_ = update.callback_query.data.split('&') + ['', '']
+    areas = {area["name"]: False for area in db.areas.find({"town_id": town_id}).sort("name", 1)}
+    if not area:
+        context.user_data["areas"]["all_" + town_id] = True
+        context.user_data["areas"].update(areas)
+    elif area == "all":
+        context.user_data["areas"]["all_" + town_id] = not context.user_data["areas"]["all_" + town_id]
+        context.user_data["areas"].update(areas)
+    else:
+        context.user_data["areas"][area] = not context.user_data["areas"][area]
+        context.user_data["areas"]["all_" + town_id] = False
+
+    reply_keyboard = []
+    for area in areas.keys():
+        if not reply_keyboard or len(reply_keyboard[-1]) == 3:
+            reply_keyboard.append([])
+        reply_keyboard[-1].append(
+            InlineKeyboardButton(
+                text=f"{'✔' if context.user_data['areas'][area] else '✖'} {area}",
+                callback_data="&".join([town_id, area])
+            )
+        )
+    reply_keyboard[-1].append(
+        InlineKeyboardButton(
+            text=f"{'✔' if context.user_data['areas']['all_' + town_id] else '✖'} Любой",
+            callback_data="&".join([town_id, "all"])
+        )
+    )
+    reply_keyboard.append([InlineKeyboardButton(text="Назад", callback_data="towns")])
+    await update.callback_query.answer()
+    text = "Выбери район"
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
+    return CHECK_AREAS
+
+
+async def get_furniture(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["furniture"] = context.user_data.get("furniture", ["furnished", "unfurnished"])
+    callback_data = update.callback_query.data
+    if callback_data in ["furnished", "unfurnished"]:
+        if callback_data in context.user_data["furniture"]:
+            context.user_data["furniture"].remove(callback_data)
+        else:
+            context.user_data["furniture"].append(callback_data)
+
+    if not context.user_data["furniture"]:
+        context.user_data["furniture"] = ["furnished", "unfurnished"]
+
+    data = context.user_data["furniture"]
+
+    reply_keyboard = [
+        [
+            inline_keyboard_button("С мебелью", "furnished", data),
+            inline_keyboard_button("Без мебели", "unfurnished", data),
+        ],
+        [
+            InlineKeyboardButton("Назад", callback_data="_back"),
+        ],
+    ]
+    await update.callback_query.answer()
+    text = "Нужна ли мебель?"
+    await update.callback_query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(reply_keyboard),
+    )
+    return CHECK_FURNITURE
 
 
 async def end_second_level(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -307,71 +358,83 @@ def setup_cancel(application: Application) -> None:
 
 
 def setup_conversation(application: Application) -> None:
-    get_price = ConversationHandler(
-        entry_points=[CallbackQueryHandler(price, pattern="price")],
+    price_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_price, pattern="price")],
         states={
-            CONFIRM_PRICE: [
-                CallbackQueryHandler(add_price, pattern="Change"),
-                MessageHandler(filters.TEXT, price),
+            CHECK_PRICE: [
+                CallbackQueryHandler(get_price, pattern="^[0-9]{1,6}$"),
             ],
-            CHECK_PRICE: [MessageHandler(filters.TEXT, check_price)],
         },
-        fallbacks=[CallbackQueryHandler(end_second_level, pattern="сonfirm")],
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
         map_to_parent={
             END: NEW_SUBSCRIBE,
         },
     )
 
-    get_floor = ConversationHandler(
-        entry_points=[CallbackQueryHandler(floor, pattern="floor")],
+    floor_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_floor, pattern="floor")],
         states={
             CHECK_FLOOR: [
-                CallbackQueryHandler(floor, pattern="without_basement"),
-                CallbackQueryHandler(floor, pattern="without_first"),
-                CallbackQueryHandler(floor, pattern="without_last"),
-                CallbackQueryHandler(floor, pattern="all"),
-                MessageHandler(filters.TEXT, floor),
+                CallbackQueryHandler(get_floor, pattern="^[^_].*"),
             ],
         },
-        fallbacks=[CallbackQueryHandler(end_second_level, pattern="confirm")],
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
         map_to_parent={
             END: NEW_SUBSCRIBE,
         },
     )
 
-    get_rooms = ConversationHandler(
-        entry_points=[CallbackQueryHandler(rooms, pattern="rooms")],
+    rooms_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_rooms, pattern="rooms")],
         states={
             CHECK_ROOMS: [
-                CallbackQueryHandler(rooms, pattern="one"),
-                CallbackQueryHandler(rooms, pattern="two"),
-                CallbackQueryHandler(rooms, pattern="three"),
-                CallbackQueryHandler(rooms, pattern="four"),
-                CallbackQueryHandler(rooms, pattern="studio"),
-                CallbackQueryHandler(rooms, pattern="all"),
-                MessageHandler(filters.TEXT, rooms),
+                CallbackQueryHandler(get_rooms, pattern="^[^_].*"),
             ],
         },
-        fallbacks=[CallbackQueryHandler(end_second_level, pattern="confirm")],
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
         map_to_parent={
             END: NEW_SUBSCRIBE,
         },
     )
 
-    get_heating = ConversationHandler(
-        entry_points=[CallbackQueryHandler(heating, pattern="heating")],
+    heating_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_heating, pattern="heating")],
         states={
             CHECK_HEATING: [
-                CallbackQueryHandler(heating, pattern="gas"),
-                CallbackQueryHandler(heating, pattern="electricity"),
-                CallbackQueryHandler(heating, pattern="underfloor"),
-                CallbackQueryHandler(heating, pattern="central"),
-                CallbackQueryHandler(heating, pattern="ac"),
-                CallbackQueryHandler(heating, pattern="all"),
-                MessageHandler(filters.TEXT, heating),
+                CallbackQueryHandler(get_heating, pattern="^[^_].*"),
             ],
         },
-        fallbacks=[CallbackQueryHandler(end_second_level, pattern="confirm")],
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
+        map_to_parent={
+            END: NEW_SUBSCRIBE,
+        },
+    )
+
+    areas_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_towns, pattern="towns")],
+        states={
+            AREAS: [
+                CallbackQueryHandler(get_areas, pattern="^[0-9]{1,2}$"),
+            ],
+            CHECK_AREAS: [
+                CallbackQueryHandler(get_towns, pattern="towns"),
+                CallbackQueryHandler(get_areas, pattern=".*"),
+            ],
+        },
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
+        map_to_parent={
+            END: NEW_SUBSCRIBE,
+        },
+    )
+
+    furniture_conversation = ConversationHandler(
+        entry_points=[CallbackQueryHandler(get_furniture, pattern="furniture")],
+        states={
+            CHECK_FURNITURE: [
+                CallbackQueryHandler(get_furniture, pattern="^[^_].*"),
+            ],
+        },
+        fallbacks=[CallbackQueryHandler(end_second_level, pattern="_back")],
         map_to_parent={
             END: NEW_SUBSCRIBE,
         },
@@ -386,16 +449,17 @@ def setup_conversation(application: Application) -> None:
                     MessageHandler(filters.TEXT, start),
                 ],
                 NEW_SUBSCRIBE: [
-                    get_price,
-                    get_floor,
-                    get_rooms,
-                    get_heating,
+                    price_conversation,
+                    floor_conversation,
+                    rooms_conversation,
+                    heating_conversation,
+                    areas_conversation,
+                    furniture_conversation,
                     CallbackQueryHandler(subscribe, pattern="subscribe"),
-                    MessageHandler(filters.TEXT, new_subscribe),
                 ],
             },
             fallbacks=[CommandHandler("cancel", cancel)],
             per_chat=False,
-            # allow_reentry=True,
+            allow_reentry=True,
         )
     )

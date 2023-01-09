@@ -10,10 +10,12 @@ class TelegramIdAd(BaseModel):
 
 
 class SubscriberParameters(BaseModel):
-    max_price: Optional[int]
+    max_price: Optional[list[str]]
     floor: Optional[list[str]]
     rooms: Optional[list[str]]
     heating: Optional[list[str]]
+    areas: Optional[dict[str, str]]
+    furniture: Optional[list[str]]
 
 
 class Subscriber(BaseModel):
