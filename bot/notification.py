@@ -21,6 +21,9 @@ connection_parameters = dict(connect_timeout=20, read_timeout=20)
 
 
 def subscription_validation(ad: Ad, parameters: dict) -> bool:
+    if not ad.data:
+        return False
+
     if parameters.get("max_price") and ad.last_price > parameters["max_price"]:
         return False
 
@@ -40,45 +43,14 @@ def subscription_validation(ad: Ad, parameters: dict) -> bool:
         suitable_rooms = False
         if "studio" in parameters["rooms"] and ad.data.room_count == "Studio Flat (1+0)":
             suitable_rooms = True
-        if "one" in parameters["rooms"] and ad.data.room_count in ["1+1", "1.5+1"]:
+        rooms, *rest = ad.data.room_count.split("+")
+        if "one" in parameters["rooms"] and rooms in ["1", "1.5"]:
             suitable_rooms = True
-        if "two" in parameters["rooms"] and ad.data.room_count in ["2+0", "2+1", "2.5+1", "2+2"]:
+        if "two" in parameters["rooms"] and rooms in ["2", "2.5"]:
             suitable_rooms = True
-        if "three" in parameters["rooms"] and ad.data.room_count in ["3+0", "3+1", "3.5+1", "3+2", "3+3"]:
+        if "three" in parameters["rooms"] and rooms in ["3", "3.5+1"]:
             suitable_rooms = True
-        if "four" in parameters["rooms"] and ad.data.room_count in [
-            "4+0",
-            "4+1",
-            "4.5+1",
-            "4+2",
-            "4+3",
-            "4+4",
-            "5+1",
-            "5.5+1",
-            "5+2",
-            "5+3",
-            "5+4",
-            "6+1",
-            "6+2",
-            "6+3",
-            "6+4",
-            "7+1",
-            "7+2",
-            "7+3",
-            "8+1",
-            "8+2",
-            "8+3",
-            "8+4",
-            "9+1",
-            "9+2",
-            "9+3",
-            "9+4",
-            "9+5",
-            "9+6",
-            "10+1",
-            "10+2",
-            "Over 10",
-        ]:
+        if "four" in parameters["rooms"] and rooms in ["4", "4.5", "5", "5.5", "6", "7", "8", "9", "10", "Over 10"]:
             suitable_rooms = True
         if not suitable_rooms:
             return False
