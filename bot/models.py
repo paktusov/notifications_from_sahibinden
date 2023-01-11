@@ -14,7 +14,7 @@ class SubscriberParameters(BaseModel):
     floor: Optional[list[str]]
     rooms: Optional[list[str]]
     heating: Optional[list[str]]
-    areas: Optional[dict[str, str]]
+    areas: Optional[dict[str, bool]]
     furniture: Optional[list[str]]
 
 

@@ -244,9 +244,8 @@ async def get_towns(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     for town in towns:
         reply_keyboard[-1].append(InlineKeyboardButton(town["name"], callback_data=town["_id"]))
         if not "all_" + town["_id"] in context.user_data["areas"]:
-            context.user_data["areas"]["all_" + town["_id"]] = False
+            context.user_data["areas"]["all_" + town["_id"]] = True
     reply_keyboard.append([InlineKeyboardButton("Назад", callback_data="_back")])
-    logging.info(context.user_data["areas"])
     await update.callback_query.answer()
     text = "Выбери город"
     await update.callback_query.edit_message_text(
@@ -260,7 +259,6 @@ async def get_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     town_id, area, *_ = update.callback_query.data.split('&') + ['', '']
     areas = {area["name"]: False for area in db.areas.find({"town_id": town_id}).sort("name", 1)}
     if not area:
-        context.user_data["areas"]["all_" + town_id] = True
         context.user_data["areas"].update(areas)
     elif area == "all":
         context.user_data["areas"]["all_" + town_id] = not context.user_data["areas"]["all_" + town_id]
