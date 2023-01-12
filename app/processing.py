@@ -1,15 +1,14 @@
 import logging
 from datetime import datetime
 
+from bot.notification import telegram_notify
 from mongo import db
-from telegram.notification import telegram_notify
 
 from app.get_data import get_data_and_photos_ad, get_data_with_cookies, get_map_image
 from app.models import Ad, DataAd
 
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 
 def create_dataad_from_data(data: dict) -> DataAd:
@@ -34,18 +33,18 @@ def create_dataad_from_data(data: dict) -> DataAd:
     )
 
 
-def create_ad_from_data(data: list[dict]) -> list[Ad]:
-    return [Ad(**row) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
+def create_ad_from_data(data: list[dict], parameters: dict) -> list[Ad]:
+    return [Ad(**row, **parameters) for row in data if not (int(row["id"]) < 1000000000 and not row["thumbnailUrl"])]
 
 
-def processing_data(city_parameter: dict) -> None:
+async def processing_data(parameters: dict) -> None:
     flats = db.flats
     now_time = datetime.now()
-    data = get_data_with_cookies(city_parameter)
+    data = get_data_with_cookies(parameters)
     if not data:
         logger.warning("Can't parse ads from sahibinden.com")
         return
-    parsed_ads = create_ad_from_data(data)
+    parsed_ads = create_ad_from_data(data, parameters)
 
     ids = [ad.id for ad in parsed_ads]
 
@@ -70,11 +69,11 @@ def processing_data(city_parameter: dict) -> None:
             ad.map_image = map_image
 
         flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
-        telegram_notify(ad)
+        await telegram_notify(ad)
 
-    missed_ad = [Ad(**ad) for ad in flats.find({"last_seen": {"$lt": now_time}, "removed": False})]
+    missed_ad = [Ad(**ad) for ad in flats.find({"last_seen": {"$lt": now_time}, "removed": False, **parameters})]
 
     for ad in missed_ad:
         ad.remove()
         flats.find_one_and_replace({"_id": ad.id}, ad.dict(by_alias=True), upsert=True)
-        telegram_notify(ad)
+        await telegram_notify(ad)

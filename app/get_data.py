@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from datetime import datetime
 from random import shuffle
@@ -12,6 +13,11 @@ from selenium import webdriver
 
 from config import mapbox_config
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+
+
+logger = logging.getLogger(__name__)
 
 SAHIBINDEN_HOST = "https://www.sahibinden.com"
 SAHIBINDEN_HOST_ADS_SUFFIX = "/ajax/mapSearch/classified/markers"
@@ -24,7 +30,6 @@ SAHIBINDEN_DEFAULT_PARAMS = {
     "price_currency": "1",
     "address_city": "7",
     "pagingOffset": "0",
-
 }
 VARIABLE_PARAMS = {
     # (1day, 7days, 15days, 30days)
@@ -119,10 +124,10 @@ def get_data_with_selenium(**url_params: Any) -> list[dict]:
     return data["classifiedMarkers"]
 
 
-def get_data_with_cookies(city_params: dict) -> list[dict] | None:
+def get_data_with_cookies(parameters: dict) -> list[dict] | None:
     response = requests.get(
         url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_ADS_SUFFIX,
-        params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | city_params,
+        params=SAHIBINDEN_DEFAULT_PARAMS | VARIABLE_PARAMS | parameters,
         cookies=COOKIES,
         headers=HEADERS,
         timeout=10,
@@ -131,6 +136,25 @@ def get_data_with_cookies(city_params: dict) -> list[dict] | None:
         return None
     data = response.json()
     return data["classifiedMarkers"]
+
+
+def get_areas(town_code: str) -> list[dict] | None:
+    response = requests.get(
+        url=SAHIBINDEN_HOST + SAHIBINDEN_HOST_AREAS_SUFFIX,
+        params={"townId": town_code},
+        cookies=COOKIES,
+        headers=HEADERS,
+        timeout=10,
+    )
+    if response.status_code != 200:
+        return None
+    areas = []
+    for neighbourhood in response.json():
+        for area in neighbourhood["quarters"]:
+            if not isinstance(area, dict):
+                continue
+            areas.append(area)
+    return areas
 
 
 def get_data_and_photos_ad(url: str) -> (dict | None, list[str] | None):

@@ -1,5 +1,5 @@
-from app.processing import processing_data
+from app.tasks import start_processing
 
 
 if __name__ == "__main__":
-    processing_data()
+    start_processing()

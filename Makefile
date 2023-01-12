@@ -1,4 +1,4 @@
-CODE = app telegram
+CODE = app bot
 
 env:
 	@$(eval SHELL:=/bin/bash)
