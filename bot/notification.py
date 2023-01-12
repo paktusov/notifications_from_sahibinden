@@ -68,7 +68,7 @@ def check_furniture(ad: Ad, parameter: list) -> bool:
 
 
 def check_area(ad: Ad, parameter: dict) -> bool:
-    if bool(parameter['all_' + ad.address_town]):
+    if parameter['all_' + ad.address_town]:
         return True
     if parameter[ad.data.area]:
         return True
@@ -80,16 +80,16 @@ def subscription_validation(ad: Ad, parameters: dict) -> bool:
         return False
     if parameters.get("max_price") and ad.last_price > int(parameters["max_price"][0]):
         return False
-    if parameters.get("floor"):
-        return check_floor(ad, parameters["floor"])
-    if parameters.get("rooms"):
-        return check_rooms(ad, parameters["rooms"])
-    if parameters.get("heating"):
-        return check_heating(ad, parameters["heating"])
-    if parameters.get("furniture"):
-        return check_furniture(ad, parameters["furniture"])
-    if parameters.get("area"):
-        return check_area(ad, parameters["area"])
+    if parameters.get("floor") and not check_floor(ad, parameters["floor"]):
+        return False
+    if parameters.get("rooms") and not check_rooms(ad, parameters["rooms"]):
+        return False
+    if parameters.get("heating") and not check_heating(ad, parameters["heating"]):
+        return False
+    if parameters.get("furniture") and not check_furniture(ad, parameters["furniture"]):
+        return False
+    if parameters.get("areas") and not check_area(ad, parameters["areas"]):
+        return False
     return True
 
 
