@@ -68,13 +68,14 @@ def check_furniture(ad: Ad, parameter: list) -> bool:
 
 
 def check_area(ad: Ad, parameter: dict) -> bool:
-    if parameter['all_' + ad.address_town]:
+    if parameter["all_" + ad.address_town]:
         return True
     if parameter[ad.data.area]:
         return True
     return False
 
 
+# pylint: disable=too-many-return-statements)
 def subscription_validation(ad: Ad, parameters: dict) -> bool:
     if not ad.data:
         return False

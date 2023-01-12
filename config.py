@@ -11,6 +11,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 class TelegramSettings(BaseSettings):
     token_antalya_bot: str
+    antalya_bot_username: str
     antalya_bot_id: str
     id_antalya_channel: str
     id_antalya_chat: str

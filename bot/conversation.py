@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 
 from bot.models import Subscriber, SubscriberParameters
+from config import telegram_config
 from mongo import db
 
 
@@ -38,7 +39,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.message.sender_chat:
         await context.bot.send_message(
             update.message.sender_chat.id,
-            "Для подписки на уведомления, пожалуйста, напишите мне в личные сообщения @flat_in_Antalya_test_bot",
+            "Для подписки на уведомления, пожалуйста,"
+            f"напишите мне в личные сообщения {telegram_config.antalya_bot_username}",
         )
         return ConversationHandler.END
     user_id = update.message.chat.id
@@ -57,7 +59,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     ]
     await context.bot.send_message(
         user_id,
-        """Привет, ищешь квартиру в Антилии? Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.""",
+        "Привет, ищешь квартиру в Антилии?"
+        "Я могу отправлять тебе уведомления о новых квартирах по твоим параметрам поиска.",
     )
     await context.bot.send_message(
         user_id,
@@ -67,6 +70,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return START
 
 
+# pylint: disable=unused-argument
 async def new_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_keyboard = [
         [
@@ -85,31 +89,33 @@ async def new_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             InlineKeyboardButton("Подписаться", callback_data="subscribe"),
         ],
     ]
+    text = "Выбери требуемые параметры поиска и нажми 'Подписаться'"
     await update.callback_query.answer()
     await update.callback_query.edit_message_text(
-        "Выбери требуемые параметры поиска и нажми 'Подписаться'",
+        text,
         reply_markup=InlineKeyboardMarkup(reply_keyboard),
     )
     return NEW_SUBSCRIBE
 
 
-async def get_price(update:Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data["max_price"] = context.user_data.get("max_price", ['30000'])
+async def get_price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["max_price"] = context.user_data.get("max_price", ["30000"])
     callback_data = update.callback_query.data
-    prices = ['5000', '7500', '10000', '12500', '15000', '20000', '25000']
-    if callback_data != 'price':
-        context.user_data['max_price'] = [callback_data]
+    prices = ["5000", "7500", "10000", "12500", "15000", "20000", "25000"]
+    if callback_data != "price":
+        context.user_data["max_price"] = [callback_data]
 
-    data = context.user_data['max_price']
+    data = context.user_data["max_price"]
 
     reply_keyboard = []
     for price in prices:
         if not reply_keyboard or len(reply_keyboard[-1]) == 2:
             reply_keyboard.append([])
         reply_keyboard[-1].append(inline_keyboard_button(price, price, data))
-    reply_keyboard[-1].append(inline_keyboard_button('Любая', '30000', data))
+    reply_keyboard[-1].append(inline_keyboard_button("Любая", "30000", data))
     reply_keyboard.append([InlineKeyboardButton("Назад", callback_data="_back")])
     text = "Какую максимальную сумму TL ты готов потратить на аренду в месяц?"
+    await update.callback_query.answer()
     await update.callback_query.edit_message_text(
         text,
         reply_markup=InlineKeyboardMarkup(reply_keyboard),
@@ -256,7 +262,7 @@ async def get_towns(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def get_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    town_id, area, *_ = update.callback_query.data.split('&') + ['', '']
+    town_id, area, *_ = update.callback_query.data.split("&") + ["", ""]
     areas = {area["name"]: False for area in db.areas.find({"town_id": town_id}).sort("name", 1)}
     if not area:
         context.user_data["areas"].update(areas)
@@ -274,13 +280,13 @@ async def get_areas(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         reply_keyboard[-1].append(
             InlineKeyboardButton(
                 text=f"{'✔' if context.user_data['areas'][area] else '✖'} {area}",
-                callback_data="&".join([town_id, area])
+                callback_data="&".join([town_id, area]),
             )
         )
     reply_keyboard[-1].append(
         InlineKeyboardButton(
             text=f"{'✔' if context.user_data['areas']['all_' + town_id] else '✖'} Любой",
-            callback_data="&".join([town_id, "all"])
+            callback_data="&".join([town_id, "all"]),
         )
     )
     reply_keyboard.append([InlineKeyboardButton(text="Назад", callback_data="towns")])

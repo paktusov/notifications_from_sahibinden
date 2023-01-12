@@ -14,6 +14,7 @@ channel_id = telegram_config.id_antalya_channel
 logger = logging.getLogger(__name__)
 
 
+# pylint: disable=unused-argument
 async def get_telegram_message_id(update: Update, context: CallbackContext) -> None:
     telegram_chat_message_id = update.message.message_id
     telegram_channel_message_id = update.message.forward_from_message_id
